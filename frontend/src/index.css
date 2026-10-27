@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { @apply bg-ground; }
+  body { @apply min-h-screen bg-ground font-sans text-[15px] text-ink antialiased; }
+  h1, h2, h3 { @apply font-display; }
+  :focus-visible { outline: 3px solid rgba(43, 89, 206, 0.35); outline-offset: 2px; }
+}
+
+@layer components {
+  .card { @apply rounded-card border border-line bg-white shadow-card; }
+  .card-pad { @apply p-5 sm:p-6; }
+
+  .btn { @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-sm { @apply px-3 py-1.5 text-xs; }
+  .btn-primary { @apply btn bg-brand text-white hover:bg-brand-dark; }
+  .btn-secondary { @apply btn bg-brand-soft text-brand-dark hover:bg-brand-nav; }
+  .btn-ghost { @apply btn border border-line bg-white text-ink hover:bg-ground; }
+  .btn-danger { @apply btn border border-danger/30 bg-danger-soft text-danger hover:bg-danger hover:text-white; }
+  /* Legacy names kept for unchanged screens. */
+  .btn-outline { @apply btn-ghost; }
+  .btn-blue { @apply btn-primary; }
+
+  .input { @apply block w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink-muted/70 focus:border-brand focus:ring-4 focus:ring-brand/15 disabled:bg-ground; }
+  .label { @apply mb-1.5 block text-sm font-semibold text-ink-soft; }
+  .hint { @apply mt-1 text-xs text-ink-muted; }
+
+  .badge { @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-ground px-2.5 py-0.5 text-xs font-semibold text-ink-soft; }
+  .badge-brand { @apply badge bg-brand-soft text-brand-dark; }
+  .badge-success { @apply badge bg-success-soft text-success; }
+  .badge-danger { @apply badge bg-danger-soft text-danger; }
+  .badge-warning { @apply badge bg-warning-soft text-warning; }
+
+  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.12em] text-brand; }
+  .link { @apply font-semibold text-brand hover:text-brand-dark hover:underline; }
+
+  .table { @apply w-full text-left text-sm; }
+  .table th { @apply border-b border-line px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-muted; }
+  .table td { @apply border-b border-line px-4 py-3 align-middle; }
+  .table tr:last-child td { @apply border-b-0; }
+  .scroll-thin { scrollbar-width: thin; }
+}

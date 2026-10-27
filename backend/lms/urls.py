@@ -1,0 +1,70 @@
+from django.urls import path
+from . import views as v
+
+urlpatterns = [
+    path('auth/csrf', v.csrf_token),
+    path('auth/login', v.login),
+    path('auth/token', v.legacy_jwt_login),
+    path('auth/refresh', v.TrackedTokenRefreshView.as_view()),
+    path('auth/register', v.register),
+    path('auth/logout', v.logout),
+    path('auth/me', v.me),
+    path('auth/password/change', v.password_change),
+    path('auth/password-reset', v.password_reset_request),
+    path('auth/password-reset/validate', v.password_reset_validate),
+    path('auth/password-reset/confirm', v.password_reset_confirm),
+    path('auth/google/status', v.google_status),
+    path('auth/google', v.google_login_start),
+    path('auth/google/callback', v.google_login_callback),
+
+    path('student/dashboard', v.student_dashboard),
+    path('student/progress', v.student_progress),
+    path('admin/dashboard', v.admin_dashboard),
+    path('announcements', v.announcements),
+
+    path('courses', v.courses),
+    path('courses/<int:pk>', v.course_detail),
+    path('courses/<int:pk>/player', v.course_player),
+    path('courses/<int:pk>/enroll', v.course_enroll),
+    path('courses/<int:pk>/modules', v.course_modules),
+    path('courses/<int:pk>/modules/order', v.course_module_order),
+    path('courses/<int:pk>/resources', v.course_resources),
+    path('modules/<int:pk>', v.module_detail),
+    path('modules/<int:pk>/resources', v.module_resources),
+    path('resources/<int:pk>', v.resource_detail),
+    path('resources/<int:pk>/file', v.resource_file),
+    path('chapters/<int:pk>/progress', v.chapter_progress),
+
+    path('quizzes', v.quizzes),
+    path('quizzes/<int:pk>', v.quiz_detail),
+    path('quizzes/<int:pk>/attempts', v.quiz_attempt),
+
+    path('assessments', v.assessments),
+    path('assessments/<int:pk>', v.assessment_detail),
+    path('assessments/<int:pk>/start', v.assessment_start),
+    path('assessments/<int:pk>/history', v.assessment_history),
+    path('attempts/<int:pk>', v.attempt_detail),
+    path('attempts/<int:pk>/answers', v.attempt_answers),
+    path('attempts/<int:pk>/submit', v.attempt_submit),
+
+    path('exams', v.exams),
+    path('exams/<int:pk>', v.exam_detail),
+
+    path('admin/courses/<int:pk>', v.admin_course_detail),
+    path('admin/students', v.students),
+    path('admin/students/<int:pk>', v.student_detail),
+    path('admin/analytics/logins', v.login_analytics),
+    path('admin/analytics/exams', v.exam_analytics),
+    path('admin/attempts/<int:pk>', v.admin_attempt_detail),
+    path('admin/attempts/<int:pk>/review', v.review_attempt),
+    path('admin/question-imports/upload', v.question_import_upload),
+    path('admin/question-imports/<str:batch_id>/preview', v.question_import_preview),
+    path('admin/question-imports/<str:batch_id>/confirm', v.question_import_confirm),
+
+    path('library', v.library),
+    path('notes/apps', v.notes_apps),
+    path('calendar', v.calendar_view),
+
+    path('profile', v.profile),
+    path('profile/avatar', v.profile_avatar),
+]
