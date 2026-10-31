@@ -160,7 +160,7 @@ export default function QuestionImportPanel({ exam, exams, onImported, onCancel 
             </div>
           )}
           {preview.preview.length > 0 && (
-            <div className="max-h-80 overflow-auto rounded-xl border border-line bg-white">
+            <div className="max-h-80 overflow-auto rounded-xl border border-line bg-surface">
               <table className="table min-w-[640px]">
                 <thead><tr><th>#</th><th>Type</th><th>Question</th><th>Correct answer</th><th>Points</th></tr></thead>
                 <tbody>{preview.preview.map((question, index) => (

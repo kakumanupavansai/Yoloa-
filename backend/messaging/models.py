@@ -79,3 +79,37 @@ class MessageAttachment(models.Model):
 
     class Meta:
         ordering = ['id']
+
+
+# ───────────────────────── Public student feed ─────────────────────────
+class FeedPost(models.Model):
+    """A post on the public student feed, readable by every active student.
+
+    Kept in its own tables: nothing from private conversations is ever reachable through the feed API.
+    """
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='feed_posts')
+    body = models.TextField(blank=True)
+    link_url = models.URLField(max_length=500, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-id']
+
+
+def feed_attachment_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return timezone.now().strftime(f'feed_attachments/%Y/%m/{uuid.uuid4().hex}{ext}')
+
+
+class FeedAttachment(models.Model):
+    KINDS = MessageAttachment.KINDS
+    post = models.ForeignKey(FeedPost, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to=feed_attachment_path, storage=private_storage, max_length=255)
+    original_name = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=120)
+    size = models.PositiveIntegerField()
+    kind = models.CharField(max_length=10, choices=KINDS)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['id']

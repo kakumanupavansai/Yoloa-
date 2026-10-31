@@ -11,4 +11,7 @@ urlpatterns = [
     path('messages/sync', v.message_sync),
     path('messages/unread', v.unread),
     path('messages/attachments/<int:pk>', v.attachment_file),
+    path('feed/posts', v.feed_posts),
+    path('feed/posts/<int:pk>', v.feed_post_detail),
+    path('feed/attachments/<int:pk>', v.feed_attachment_file),
 ]

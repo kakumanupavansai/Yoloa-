@@ -5,6 +5,20 @@ from urllib.parse import urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 
+
+def _env_bool(name, default=False):
+    """Read common boolean spellings from environment variables."""
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().casefold()
+    if value in {'1', 'true'}:
+        return True
+    if value in {'0', 'false'}:
+        return False
+    raise ImproperlyConfigured(f'{name} must be set to True, False, 1, or 0.')
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 try:
     from dotenv import load_dotenv
@@ -196,14 +210,14 @@ if not DEBUG and (not SESSION_COOKIE_SECURE or not CSRF_COOKIE_SECURE or not SEC
                   SECURE_HSTS_SECONDS < 1):
     raise ImproperlyConfigured('Production requires secure cookies, HTTPS redirect, and HSTS.')
 
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'YOLOA Learning Portal <no-reply@localhost>')
-EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', '1') == '1'
-EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', '0') == '1'
+EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', True)
+EMAIL_USE_SSL = _env_bool('EMAIL_USE_SSL', False)
 EMAIL_TIMEOUT = 10
 
 GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')

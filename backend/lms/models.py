@@ -1,10 +1,12 @@
 import os
+import uuid
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.files.storage import FileSystemStorage
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 
 class PrivateFileStorage(FileSystemStorage):
@@ -156,12 +158,40 @@ class Exam(models.Model):
         ]
 
 
+def quiz_image_path(instance, filename):
+    # Random stored name: the uploaded file name is kept in the database only, never used as a path.
+    ext = os.path.splitext(filename)[1].lower()
+    return timezone.now().strftime(f'quiz_images/%Y/%m/{uuid.uuid4().hex}{ext}')
+
+
+class QuizImage(models.Model):
+    """An image shown with a question, an answer option or an explanation.
+
+    Kept apart from Question because saving a quiz re-creates its Question rows; questions (and attempt snapshots)
+    refer to images by id, so images survive edits and past attempts keep theirs. Streamed only after a permission check.
+    """
+    file = models.FileField(upload_to=quiz_image_path, storage=private_storage, max_length=255)
+    original_name = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=40)
+    size = models.PositiveIntegerField()
+    width = models.PositiveIntegerField(default=0)
+    height = models.PositiveIntegerField(default=0)
+    uploaded_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class Question(models.Model):
     QUESTION_TYPES = [('single', 'Single-answer MCQ'), ('multiple', 'Multiple-correct MCQ'), ('true_false', 'True / false'), ('short', 'Short answer')]
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='questions')
     text = models.TextField()
     question_type = models.CharField(max_length=20, choices=QUESTION_TYPES, default='single')
     choices = models.JSONField(default=list)
+    # Optional images: one for the question, one per choice (parallel to `choices`, null = none) and one for the explanation.
+    image = models.ForeignKey(QuizImage, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    choice_images = models.JSONField(default=list, blank=True)
+    # Shown to the student with the answer review, only after the attempt is finalized.
+    explanation = models.TextField(blank=True)
+    explanation_image = models.ForeignKey(QuizImage, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
     # `correct` is retained for legacy single-choice data; all new types use these fields.
     correct = models.PositiveSmallIntegerField(default=0)
     correct_answers = models.JSONField(default=list)

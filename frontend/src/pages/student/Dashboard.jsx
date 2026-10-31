@@ -46,7 +46,7 @@ export default function StudentDashboard() {
                   <h2 className="mt-2 text-2xl font-extrabold">{d.next.moduleTitle}</h2>
                   <p className="mt-1 text-sm text-white/80">{d.next.courseTitle} · {d.next.percent}% complete</p>
                   <ProgressBar percent={d.next.percent} className="mt-4 bg-white/25 [&>div]:bg-white" label={`${d.next.courseTitle} progress`} />
-                  <Link to={`/student/courses/${d.next.courseId}/modules/${d.next.moduleId}`} className="btn mt-5 bg-white text-brand-dark hover:bg-brand-soft">
+                  <Link to={`/student/courses/${d.next.courseId}/modules/${d.next.moduleId}`} className="btn mt-5 bg-surface text-brand-dark hover:bg-brand-soft">
                     Continue module <ArrowRightIcon className="h-4 w-4" />
                   </Link>
                 </article>

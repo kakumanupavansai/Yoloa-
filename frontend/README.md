@@ -19,13 +19,16 @@ Open the app on `localhost` so the Django session cookie (and the Google OAuth s
 | Course outline (lock states, final exam card) | `/student/courses/:id` | `pages/student/CourseDetail.jsx` |
 | Module page (YouTube, PDF viewer, downloads, quiz entry) | `/student/courses/:courseId/modules/:moduleId` | `pages/student/ModuleView.jsx` |
 | Module quiz · final exam | `/student/quizzes/:id` · `/student/exams/:id` | `pages/student/QuizTake.jsx` |
-| Learning progress | `/student/progress` | `pages/student/Progress.jsx` |
+| Learning progress (summary cards, charts, per-course tables) | `/student/progress` | `pages/student/Progress.jsx` |
+| Community feed (public posts, links, images, files) | `/student/community` | `pages/student/Community.jsx` |
 | Profile (both roles) | `/student/profile` · `/admin/profile` | `pages/student/Profile.jsx` |
 | Admin dashboard | `/admin/dashboard` | `pages/admin/Dashboard.jsx` |
 | Courses · course editor (modules, resources, quizzes, enrollments) | `/admin/courses` · `/admin/courses/:id` | `pages/admin/Courses.jsx` · `CourseEditor.jsx` |
-| Assessments · quiz / final-exam builder | `/admin/exams` · `/admin/exams/new` · `/admin/exams/:id` | `pages/admin/Exams.jsx` · `QuizEditor.jsx` |
+| Quiz / final-exam builder (opened from a course module; images, Excel import, delete) | `/admin/exams/new` · `/admin/exams/:id` | `QuizEditor.jsx` |
 | Student directory · student detail | `/admin/students` · `/admin/students/:id` | `pages/admin/Students.jsx` · `StudentDetail.jsx` |
-| Analytics · question import | `/admin/analytics` · `/admin/question-import` | `pages/admin/Analytics.jsx` · `QuestionImport.jsx` |
+| Analytics dashboard | `/admin/analytics` | `pages/admin/Analytics.jsx` |
+
+`/admin/exams` and `/admin/question-import` (removed pages) redirect to Courses. The light/dark theme lives in `context/ThemeContext.jsx`; colours are CSS variables in `src/index.css` mapped to Tailwind names in `tailwind.config.js`, so use `bg-surface`, `text-ink`, `border-line` etc. instead of fixed colours.
 
 Route guards (`routes/ProtectedRoute.jsx`) only choose screens; every permission is enforced again by Django.
 

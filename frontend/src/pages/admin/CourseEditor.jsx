@@ -111,12 +111,12 @@ function ResourceList({ resources, onEdit, onDelete, empty }) {
     <ul className="space-y-2">
       {resources.map((resource) => (
         <li key={resource.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-ground px-3 py-2 text-sm">
-          <span className="badge bg-white">{typeLabel[resource.type] || resource.type}</span>
+          <span className="badge bg-surface">{typeLabel[resource.type] || resource.type}</span>
           <span className="min-w-0 flex-1 truncate font-medium">{resource.title}{resource.fileName ? ` · ${resource.fileName}` : ''}</span>
-          {resource.url && <a href={resource.url} target="_blank" rel="noopener noreferrer" className="rounded-lg p-1.5 text-ink-muted hover:bg-white" aria-label={`Open link for ${resource.title}`}><ExternalIcon className="h-4 w-4" /></a>}
-          {resource.hasFile && <a href={resourcesApi.fileUrl(resource, { download: true })} className="rounded-lg p-1.5 text-ink-muted hover:bg-white" aria-label={`Download ${resource.title}`}><DownloadIcon className="h-4 w-4" /></a>}
-          <button type="button" onClick={() => onEdit(resource)} className="rounded-lg p-1.5 text-ink-muted hover:bg-white" aria-label={`Edit resource ${resource.title}`}><PencilIcon className="h-4 w-4" /></button>
-          <button type="button" onClick={() => onDelete(resource)} className="rounded-lg p-1.5 text-danger hover:bg-white" aria-label={`Delete resource ${resource.title}`}><TrashIcon className="h-4 w-4" /></button>
+          {resource.url && <a href={resource.url} target="_blank" rel="noopener noreferrer" className="rounded-lg p-1.5 text-ink-muted hover:bg-surface" aria-label={`Open link for ${resource.title}`}><ExternalIcon className="h-4 w-4" /></a>}
+          {resource.hasFile && <a href={resourcesApi.fileUrl(resource, { download: true })} className="rounded-lg p-1.5 text-ink-muted hover:bg-surface" aria-label={`Download ${resource.title}`}><DownloadIcon className="h-4 w-4" /></a>}
+          <button type="button" onClick={() => onEdit(resource)} className="rounded-lg p-1.5 text-ink-muted hover:bg-surface" aria-label={`Edit resource ${resource.title}`}><PencilIcon className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onDelete(resource)} className="rounded-lg p-1.5 text-danger hover:bg-surface" aria-label={`Delete resource ${resource.title}`}><TrashIcon className="h-4 w-4" /></button>
         </li>
       ))}
       {!resources.length && <li className="text-sm text-ink-muted">{empty}</li>}

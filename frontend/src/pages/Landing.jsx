@@ -34,7 +34,7 @@ export default function Landing() {
       <div className="text-center">
         <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand">Welcome to YOLOA</p>
         <h1 className="mt-3 text-3xl font-bold text-ink sm:text-4xl">How would you like to sign in?</h1>
-        <p className="mx-auto mt-3 max-w-lg text-[15px] text-gray-600">Choose your portal to continue. Students and administrators sign in separately.</p>
+        <p className="mx-auto mt-3 max-w-lg text-[15px] text-ink-soft">Choose your portal to continue. Students and administrators sign in separately.</p>
       </div>
       {authError && (
         <div className="mx-auto mt-6 max-w-xl">
@@ -48,12 +48,12 @@ export default function Landing() {
         {portals.map(({ to, title, icon: Icon, description, points, iconTone, ring, cta }) => (
           <li key={to}>
             <Link to={to} aria-label={`Continue as ${title}`}
-              className={`group flex h-full flex-col rounded-2xl border-2 border-transparent bg-white p-6 shadow-[0_10px_40px_-12px_rgba(38,38,174,0.25)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 sm:p-7 ${ring}`}>
+              className={`group flex h-full flex-col rounded-2xl border-2 border-transparent bg-surface p-6 shadow-[0_10px_40px_-12px_rgba(38,38,174,0.25)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 sm:p-7 ${ring}`}>
               <span className={`flex h-14 w-14 items-center justify-center rounded-2xl ${iconTone}`}>
                 <Icon className="h-8 w-8" aria-hidden="true" />
               </span>
               <h2 className="mt-5 text-xl font-bold text-ink">{title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-gray-600">{description}</p>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{description}</p>
               <ul className="mt-4 space-y-1.5 text-sm text-ink-soft">
                 {points.map((point) => (
                   <li key={point} className="flex items-center gap-2"><I.CheckCircleIcon className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />{point}</li>

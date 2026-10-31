@@ -348,7 +348,8 @@ describe.skipIf(!MOCK)('mobile and tablet navigation', () => {
     const drawer = screen.getByRole('dialog', { name: /main menu/i })
     expect(within(drawer).getByRole('link', { name: 'Course library' })).toBeInTheDocument()
     // Messaging is implemented; postponed features are not offered as empty navigation items.
-    expect(within(drawer).getByRole('link', { name: 'Messages' })).toBeInTheDocument()
+    expect(within(drawer).getByRole('link', { name: 'Private messages' })).toBeInTheDocument()
+    expect(within(drawer).getByRole('link', { name: 'Community feed' })).toHaveAttribute('href', '/student/community')
     for (const name of [/notes/i, /calendar/i, /chat/i, /^library$/i]) expect(within(drawer).queryByRole('link', { name })).not.toBeInTheDocument()
     expect(document.body.style.overflow).toBe('hidden')
     await user.keyboard('{Escape}')
@@ -361,6 +362,8 @@ describe.skipIf(!MOCK)('mobile and tablet navigation', () => {
     open('/admin/dashboard', 'admin')
     await user.click(await screen.findByRole('button', { name: /open menu/i }))
     const drawer = screen.getByRole('dialog', { name: /main menu/i })
-    for (const label of ['Courses', 'Assessments', 'Students', 'Analytics']) expect(within(drawer).getByRole('link', { name: label })).toBeInTheDocument()
+    for (const label of ['Courses', 'Students', 'Analytics']) expect(within(drawer).getByRole('link', { name: label })).toBeInTheDocument()
+    // The separate Assessments and Question import pages were removed (quizzes live under Courses).
+    for (const label of ['Assessments', 'Question import']) expect(within(drawer).queryByRole('link', { name: label })).not.toBeInTheDocument()
   })
 })

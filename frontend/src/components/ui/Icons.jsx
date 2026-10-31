@@ -51,6 +51,11 @@ export const PaperclipIcon = icon(<path d="m21 11.5-8.6 8.6a5.5 5.5 0 0 1-7.8-7.
 export const SendIcon = icon(<><path d="M21 3 10 14" /><path d="m21 3-7 18-4-7-7-4z" /></>)
 export const EyeOffIcon = icon(<><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a17.7 17.7 0 0 1-3.2 4.2M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" /></>)
 
+export const SunIcon = icon(<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>)
+export const MoonIcon = icon(<path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z" />)
+export const ImageIcon = icon(<><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="m21 16-5-5-9 9" /></>)
+export const GlobeIcon = icon(<><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>)
+
 // Google "G" mark, shown only on the student Google sign-in button.
 export const GoogleIcon = (props) => (
   <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true" {...props}>

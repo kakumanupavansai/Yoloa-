@@ -2,28 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens ("R G B" so Tailwind can add opacity). The light values are the original YOLOA palette. */
 @layer base {
+  :root {
+    color-scheme: light;
+    --brand: 43 89 206;
+    --brand-dark: 38 38 174;
+    --brand-strong: 38 38 174;
+    --brand-soft: 231 236 251;
+    --brand-nav: 217 226 251;
+    --brand-50: 244 246 254;
+    --ink: 23 32 52;
+    --ink-soft: 70 80 101;
+    --ink-muted: 105 115 134;
+    --ink-nav: 55 55 57;
+    --surface: 255 255 255;
+    --line: 232 234 240;
+    --ground: 247 248 252;
+    --scrim: 12 17 29;
+    --success: 15 157 117;
+    --success-soft: 227 246 239;
+    --danger: 220 72 84;
+    --danger-soft: 253 236 238;
+    --warning: 180 83 9;
+    --warning-soft: 253 243 226;
+    --accent-coral: 255 127 127;
+    --accent-purple: 123 112 238;
+    --shadow-card: 0 10px 25px rgba(23, 32, 52, .06);
+    --shadow-pop: 0 20px 45px -12px rgba(23, 32, 52, .25);
+    /* Chart series (validated for contrast on the card surface in both themes). */
+    --chart-1: 43 89 206;
+    --chart-2: 15 157 117;
+    --chart-3: 217 119 6;
+    --chart-4: 123 112 238;
+    --chart-5: 219 39 119;
+    --chart-grid: 232 234 240;
+  }
+
+  [data-theme='dark'] {
+    color-scheme: dark;
+    --brand: 92 128 240;
+    --brand-dark: 165 188 255;
+    --brand-strong: 72 108 222;
+    --brand-soft: 31 42 78;
+    --brand-nav: 40 54 98;
+    --brand-50: 24 32 58;
+    --ink: 231 235 243;
+    --ink-soft: 192 199 214;
+    --ink-muted: 148 158 178;
+    --ink-nav: 220 223 230;
+    --surface: 24 31 46;
+    --line: 46 56 76;
+    --ground: 14 19 31;
+    --scrim: 0 0 0;
+    --success: 52 211 153;
+    --success-soft: 17 54 45;
+    --danger: 248 113 122;
+    --danger-soft: 66 27 34;
+    --warning: 251 176 72;
+    --warning-soft: 62 43 16;
+    --accent-coral: 255 143 143;
+    --accent-purple: 155 146 255;
+    --shadow-card: 0 10px 25px rgba(0, 0, 0, .35);
+    --shadow-pop: 0 20px 45px -12px rgba(0, 0, 0, .6);
+    --chart-1: 110 146 255;
+    --chart-2: 52 211 153;
+    --chart-3: 251 176 72;
+    --chart-4: 167 158 255;
+    --chart-5: 244 114 182;
+    --chart-grid: 46 56 76;
+  }
+
   html { @apply bg-ground; }
   body { @apply min-h-screen bg-ground font-sans text-[15px] text-ink antialiased; }
   h1, h2, h3 { @apply font-display; }
-  :focus-visible { outline: 3px solid rgba(43, 89, 206, 0.35); outline-offset: 2px; }
+  :focus-visible { outline: 3px solid rgb(var(--brand) / .35); outline-offset: 2px; }
+  /* Native date pickers and selects follow the theme through color-scheme. */
+  input, select, textarea { color-scheme: inherit; }
 }
 
 @layer components {
-  .card { @apply rounded-card border border-line bg-white shadow-card; }
+  .card { @apply rounded-card border border-line bg-surface shadow-card; }
   .card-pad { @apply p-5 sm:p-6; }
 
   .btn { @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
   .btn-sm { @apply px-3 py-1.5 text-xs; }
-  .btn-primary { @apply btn bg-brand text-white hover:bg-brand-dark; }
+  .btn-primary { @apply btn bg-brand text-white hover:bg-brand-strong; }
   .btn-secondary { @apply btn bg-brand-soft text-brand-dark hover:bg-brand-nav; }
-  .btn-ghost { @apply btn border border-line bg-white text-ink hover:bg-ground; }
+  .btn-ghost { @apply btn border border-line bg-surface text-ink hover:bg-ground; }
   .btn-danger { @apply btn border border-danger/30 bg-danger-soft text-danger hover:bg-danger hover:text-white; }
+  .btn-danger-solid { @apply btn bg-danger text-white hover:opacity-90; }
   /* Legacy names kept for unchanged screens. */
   .btn-outline { @apply btn-ghost; }
   .btn-blue { @apply btn-primary; }
 
-  .input { @apply block w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink-muted/70 focus:border-brand focus:ring-4 focus:ring-brand/15 disabled:bg-ground; }
+  .input { @apply block w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink-muted/70 focus:border-brand focus:ring-4 focus:ring-brand/15 disabled:bg-ground; }
   .label { @apply mb-1.5 block text-sm font-semibold text-ink-soft; }
   .hint { @apply mt-1 text-xs text-ink-muted; }
 
@@ -36,9 +109,13 @@
   .eyebrow { @apply text-xs font-bold uppercase tracking-[0.12em] text-brand; }
   .link { @apply font-semibold text-brand hover:text-brand-dark hover:underline; }
 
-  .table { @apply w-full text-left text-sm; }
-  .table th { @apply border-b border-line px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-muted; }
+  /* relative: keeps sr-only header cells inside the table's scroll container, so narrow screens never scroll sideways. */
+  .table { @apply relative w-full text-left text-sm; }
+  .table th { @apply border-b border-line bg-ground/60 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-muted; }
   .table td { @apply border-b border-line px-4 py-3 align-middle; }
+  .table tbody tr { @apply transition-colors hover:bg-ground/50; }
   .table tr:last-child td { @apply border-b-0; }
   .scroll-thin { scrollbar-width: thin; }
+
+  .skeleton { @apply animate-pulse rounded-lg bg-line/70; }
 }

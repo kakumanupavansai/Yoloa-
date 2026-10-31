@@ -4,6 +4,7 @@ import { examsApi } from '../../services/api'
 import { Modal } from '../ui/Feedback'
 import { Async } from '../ui/States'
 import { CheckIcon } from '../ui/Icons'
+import { QuizImage } from './QuizImageField'
 
 const LETTERS = 'ABCDEFGH'
 const TYPE_LABELS = { single: 'Single choice', multiple: 'Multiple correct', true_false: 'True / false', short: 'Short answer' }
@@ -31,6 +32,7 @@ function PreviewBody({ examId }) {
               <li key={question.id} className="rounded-xl border border-line p-4">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted"><span className="font-bold text-ink">Question {number + 1}</span><span className="badge">{TYPE_LABELS[question.questionType]}</span>{question.points} pt{question.points === 1 ? '' : 's'}</div>
                 <p className="mt-2 font-medium">{question.text}</p>
+                <QuizImage id={question.imageId} alt={`Image for question ${number + 1}`} className="mt-2 max-h-56" />
                 {question.questionType === 'short' ? (
                   <p className="mt-2 text-sm"><span className="text-ink-muted">Expected answer:</span> <span className="font-semibold">{question.expectedAnswer}</span>
                     {question.acceptedAlternatives?.length > 0 && <span className="text-ink-muted"> (also accepts {question.acceptedAlternatives.join(', ')})</span>}</p>
@@ -38,12 +40,17 @@ function PreviewBody({ examId }) {
                   <ul className="mt-2 space-y-1 text-sm">
                     {choices.map((choice, index) => (
                       <li key={index} className={`flex items-center gap-2 rounded-lg px-2 py-1 ${isCorrect(question, index) ? 'bg-success-soft font-semibold text-success' : ''}`}>
-                        <span className="w-5 font-bold">{LETTERS[index]}</span>{choice}
+                        <span className="w-5 font-bold">{LETTERS[index]}</span>
+                        <span className="flex flex-wrap items-center gap-2">{question.choiceImages?.[index] && <QuizImage id={question.choiceImages[index]} alt={`Choice ${LETTERS[index]}`} className="max-h-20" />}{choice}</span>
                         {isCorrect(question, index) && <><CheckIcon className="h-4 w-4" /><span className="sr-only">(correct)</span></>}
                       </li>
                     ))}
                   </ul>
                 )}
+                {(question.explanation || question.explanationImageId) && (
+                  <div className="mt-3 rounded-lg bg-ground p-3 text-sm"><p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Explanation</p>
+                    {question.explanation && <p className="mt-1 whitespace-pre-wrap">{question.explanation}</p>}
+                    <QuizImage id={question.explanationImageId} alt="Explanation" className="mt-2 max-h-48" /></div>)}
               </li>
             )
           })}

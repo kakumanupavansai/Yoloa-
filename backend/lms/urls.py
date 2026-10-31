@@ -49,12 +49,15 @@ urlpatterns = [
 
     path('exams', v.exams),
     path('exams/<int:pk>', v.exam_detail),
+    path('admin/quiz-images', v.quiz_image_upload),
+    path('quiz-images/<int:pk>', v.quiz_image_file),
 
     path('admin/courses/<int:pk>', v.admin_course_detail),
     path('admin/students', v.students),
     path('admin/students/<int:pk>', v.student_detail),
     path('admin/analytics/logins', v.login_analytics),
     path('admin/analytics/exams', v.exam_analytics),
+    path('admin/analytics/overview', v.analytics_overview),
     path('admin/attempts/<int:pk>', v.admin_attempt_detail),
     path('admin/attempts/<int:pk>/review', v.review_attempt),
     path('admin/question-imports/upload', v.question_import_upload),

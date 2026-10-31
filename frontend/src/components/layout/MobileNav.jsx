@@ -6,6 +6,7 @@ import Avatar from '../ui/Avatar'
 import Logo from '../ui/Logo'
 import { CloseIcon, MenuLinesIcon } from '../ui/Icons'
 import { NavLinks } from './Sidebar'
+import ThemeToggle from './ThemeToggle'
 
 // Sticky top bar (hamburger · logo · avatar) + slide-in menu. Visible below 1024px only.
 export default function MobileNav() {
@@ -31,19 +32,20 @@ export default function MobileNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-white/95 px-3 pb-2 backdrop-blur lg:hidden"
+      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface/95 px-3 pb-2 backdrop-blur lg:hidden"
         style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
         <button ref={menuBtn} onClick={() => setOpen(true)} aria-label={unread ? `Open menu (${unread} unread messages)` : 'Open menu'} aria-haspopup="dialog" aria-expanded={open}
           className="relative flex h-11 w-11 items-center justify-center rounded-xl text-brand hover:bg-brand-soft"><MenuLinesIcon className="h-6 w-6" />
-          {unread > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-danger ring-2 ring-white" aria-hidden="true" />}</button>
+          {unread > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-danger ring-2 ring-surface" aria-hidden="true" />}</button>
         <Logo className="text-[10px]" />
-        {user && <Link to={user.role === 'admin' ? '/admin/profile' : '/student/profile'} aria-label="My profile" className="ml-auto"><Avatar src={user.avatar} name={user.name} size={36} /></Link>}
+        <ThemeToggle compact className="ml-auto" />
+        {user && <Link to={user.role === 'admin' ? '/admin/profile' : '/student/profile'} aria-label="My profile"><Avatar src={user.avatar} name={user.name} size={36} /></Link>}
       </header>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Main menu">
-          <div className="absolute inset-0 bg-ink/40" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-white py-4 shadow-pop"
+          <div className="absolute inset-0 bg-scrim/50" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-surface py-4 shadow-pop"
             style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
             <div className="flex items-center justify-between px-5">
               <Logo className="text-[11px]" />

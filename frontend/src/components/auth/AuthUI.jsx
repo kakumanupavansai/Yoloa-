@@ -23,7 +23,7 @@ export function PortalBadge({ portal }) {
 
 export function AuthShell({ children, wide = false, aside, showArt = true }) {
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-white via-[#f4f5fb] to-[#e4e8f5] ${showArt ? 'lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,4fr)]' : ''}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-surface via-ground to-brand-soft ${showArt ? 'lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,4fr)]' : ''}`}>
       <main className="flex min-h-screen flex-col px-4 py-6 sm:px-8 lg:px-14">
         <header className="flex items-center justify-between">
           <Link to="/" className="rounded-md focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/40" aria-label="YOLOA home">
@@ -33,7 +33,7 @@ export function AuthShell({ children, wide = false, aside, showArt = true }) {
         <div className="flex flex-1 items-center justify-center py-8">
           <div className={`w-full ${wide ? 'max-w-3xl' : 'max-w-md'}`}>{children}</div>
         </div>
-        <footer className="text-center text-xs text-gray-500">YOLOA · You Only Learn Once</footer>
+        <footer className="text-center text-xs text-ink-muted">YOLOA · You Only Learn Once</footer>
       </main>
       {showArt && <aside className="relative hidden overflow-hidden bg-hero lg:flex lg:flex-col lg:justify-between lg:p-12" aria-hidden="true">
         <p className="max-w-sm text-3xl font-bold leading-tight text-white">
@@ -48,11 +48,11 @@ export function AuthShell({ children, wide = false, aside, showArt = true }) {
 // A card containing the page heading; `back` renders a consistent back link above the title.
 export function AuthCard({ title, subtitle, back, badge, children }) {
   return (
-    <section className="rounded-2xl border border-black/5 bg-white p-6 shadow-[0_10px_40px_-12px_rgba(38,38,174,0.25)] sm:p-9">
+    <section className="rounded-2xl border border-line bg-surface p-6 shadow-[0_10px_40px_-12px_rgba(38,38,174,0.25)] sm:p-9">
       {back && <BackLink to={back.to}>{back.label}</BackLink>}
       {badge && <div className="mt-4">{badge}</div>}
       <h1 className="mt-3 text-2xl font-bold text-ink sm:text-[28px]">{title}</h1>
-      {subtitle && <p className="mt-2 text-sm leading-relaxed text-gray-600">{subtitle}</p>}
+      {subtitle && <p className="mt-2 text-sm leading-relaxed text-ink-soft">{subtitle}</p>}
       <div className="mt-6">{children}</div>
     </section>
   )
@@ -67,12 +67,12 @@ export function BackLink({ to, children }) {
 }
 
 const inputClass = (invalid) =>
-  `block w-full rounded-xl border bg-white px-4 py-3 text-[15px] text-ink placeholder:text-gray-400 outline-none transition focus:ring-4 disabled:bg-gray-50 ${
-    invalid ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-brand focus:ring-brand/20'}`
+  `block w-full rounded-xl border bg-surface px-4 py-3 text-[15px] text-ink placeholder:text-ink-muted outline-none transition focus:ring-4 disabled:bg-ground ${
+    invalid ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-line focus:border-brand focus:ring-brand/20'}`
 
 function FieldMessage({ id, error, hint }) {
-  if (error) return <p id={id} className="mt-1.5 text-xs font-medium text-red-600">{error}</p>
-  if (hint) return <p id={id} className="mt-1.5 text-xs text-gray-500">{hint}</p>
+  if (error) return <p id={id} className="mt-1.5 text-xs font-medium text-danger">{error}</p>
+  if (hint) return <p id={id} className="mt-1.5 text-xs text-ink-muted">{hint}</p>
   return null
 }
 
@@ -101,7 +101,7 @@ export function PasswordField({ label = 'Password', error, hint, className = '',
           aria-invalid={error ? true : undefined} aria-describedby={error || hint ? messageId : undefined} {...props} />
         <button type="button" onClick={() => setVisible((shown) => !shown)} aria-pressed={visible}
           aria-label={visible ? 'Hide password' : 'Show password'} title={visible ? 'Hide password' : 'Show password'}
-          className="absolute inset-y-0 right-1.5 my-auto flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-ink focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30">
+          className="absolute inset-y-0 right-1.5 my-auto flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:bg-ground hover:text-ink focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30">
           {visible ? <I.EyeOffIcon className="h-5 w-5" aria-hidden="true" /> : <I.EyeIcon className="h-5 w-5" aria-hidden="true" />}
         </button>
       </div>
@@ -117,7 +117,7 @@ export function Spinner({ className = 'h-4 w-4' }) {
 export function SubmitButton({ busy, busyLabel, children, disabled, variant = 'primary', ...props }) {
   const look = variant === 'admin'
     ? 'bg-[#1f1f5c] hover:bg-[#2a2a78] focus-visible:ring-[#1f1f5c]/40'
-    : 'bg-brand-dark hover:bg-brand focus-visible:ring-brand/40'
+    : 'bg-brand hover:bg-brand-strong focus-visible:ring-brand/40'
   return (
     <button type="submit" disabled={busy || disabled} aria-busy={busy || undefined}
       className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold text-white shadow-sm transition focus:outline-none focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-60 ${look}`} {...props}>
@@ -129,8 +129,8 @@ export function SubmitButton({ busy, busyLabel, children, disabled, variant = 'p
 export function FormAlert({ tone = 'error', children }) {
   if (!children) return null
   const styles = tone === 'success'
-    ? 'border-green-200 bg-green-50 text-green-800'
-    : tone === 'info' ? 'border-brand/20 bg-brand-soft/50 text-brand-dark' : 'border-red-200 bg-red-50 text-red-700'
+    ? 'border-success/30 bg-success-soft text-success'
+    : tone === 'info' ? 'border-brand/20 bg-brand-soft/50 text-brand-dark' : 'border-danger/30 bg-danger-soft text-danger'
   const Icon = tone === 'success' ? I.CheckCircleIcon : I.AlertIcon
   return (
     <div role={tone === 'error' ? 'alert' : 'status'} className={`flex gap-2.5 rounded-xl border px-4 py-3 text-sm ${styles}`}>
@@ -140,7 +140,7 @@ export function FormAlert({ tone = 'error', children }) {
 }
 
 export function Divider({ children }) {
-  return <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-gray-400"><span className="h-px flex-1 bg-gray-200" />{children}<span className="h-px flex-1 bg-gray-200" /></div>
+  return <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-ink-muted"><span className="h-px flex-1 bg-line" />{children}<span className="h-px flex-1 bg-line" /></div>
 }
 
 export const textLink = 'rounded font-semibold text-brand hover:text-brand-dark hover:underline focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30'

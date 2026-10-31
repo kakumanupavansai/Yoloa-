@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { FeedbackProvider } from './components/ui/Feedback'
+import { ThemeProvider } from './context/ThemeContext'
 import ProtectedRoute, { AuthLoading, PublicOnlyRoute } from './routes/ProtectedRoute'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -20,15 +21,14 @@ const QuizTake = lazy(() => import('./pages/student/QuizTake'))
 const Progress = lazy(() => import('./pages/student/Progress'))
 const Profile = lazy(() => import('./pages/student/Profile'))
 const Messages = lazy(() => import('./pages/student/Messages'))
+const Community = lazy(() => import('./pages/student/Community'))
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
 const AdminCourses = lazy(() => import('./pages/admin/Courses'))
 const CourseEditor = lazy(() => import('./pages/admin/CourseEditor'))
-const Exams = lazy(() => import('./pages/admin/Exams'))
 const QuizEditor = lazy(() => import('./pages/admin/QuizEditor'))
 const Students = lazy(() => import('./pages/admin/Students'))
 const StudentDetail = lazy(() => import('./pages/admin/StudentDetail'))
 const Analytics = lazy(() => import('./pages/admin/Analytics'))
-const QuestionImport = lazy(() => import('./pages/admin/QuestionImport'))
 
 // Old lesson-player links now open the course outline, which shows each module's lock state.
 function LegacyWatch() {
@@ -38,6 +38,7 @@ function LegacyWatch() {
 
 export default function App() {
   return (
+    <ThemeProvider>
     <FeedbackProvider>
       <Suspense fallback={<AuthLoading label="Loading…" />}>
       <Routes>
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="quizzes/:id" element={<QuizTake />} />
             <Route path="exams/:id" element={<QuizTake final />} />
             <Route path="progress" element={<Progress />} />
+            <Route path="community" element={<Community />} />
             <Route path="messages" element={<Messages />} />
             <Route path="messages/:conversationId" element={<Messages />} />
             <Route path="profile" element={<Profile />} />
@@ -78,13 +80,15 @@ export default function App() {
             <Route path="courses" element={<AdminCourses />} />
             <Route path="courses/:id" element={<CourseEditor />} />
             <Route path="course-creation" element={<Navigate to="/admin/courses?new=1" replace />} />
-            <Route path="exams" element={<Exams />} />
+            {/* The separate Assessments list was removed: quizzes are managed from their course module. */}
+            <Route path="exams" element={<Navigate to="/admin/courses" replace />} />
             <Route path="exams/new" element={<QuizEditor />} />
             <Route path="exams/:id" element={<QuizEditor />} />
             <Route path="students" element={<Students />} />
             <Route path="students/:id" element={<StudentDetail />} />
             <Route path="analytics" element={<Analytics />} />
-            <Route path="question-import" element={<QuestionImport />} />
+            {/* Excel import lives inside Add / Edit Quiz now. */}
+            <Route path="question-import" element={<Navigate to="/admin/courses" replace />} />
             <Route path="profile" element={<Profile />} />
           </Route>
         </Route>
@@ -93,5 +97,6 @@ export default function App() {
       </Routes>
       </Suspense>
     </FeedbackProvider>
+    </ThemeProvider>
   )
 }

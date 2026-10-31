@@ -128,6 +128,8 @@ export function MessagingProvider({ children }) {
           refreshUnread()
           break
         case 'typing':
+        case 'feed.post':
+        case 'feed.delete':
           emit(data)
           break
         default:

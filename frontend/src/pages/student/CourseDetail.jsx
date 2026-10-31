@@ -108,7 +108,7 @@ export default function CourseDetail() {
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold">{course.category}</span>
             <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold">{course.level}</span>
-            {course.status === 'completed' && <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-success">Completed</span>}
+            {course.status === 'completed' && <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-success">Completed</span>}
           </div>
           <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">{course.title}</h1>
           {course.description && <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/85 sm:text-[15px]">{course.description}</p>}
@@ -118,12 +118,12 @@ export default function CourseDetail() {
               <div className="mb-1.5 flex justify-between text-sm font-semibold"><span>{course.completedModules} of {course.chapters.length} modules complete</span><span>{course.percent}%</span></div>
               <ProgressBar percent={course.percent} className="bg-white/25 [&>div]:bg-white" label="Course progress" />
               <div className="mt-5 flex flex-wrap gap-2">
-                {course.nextModule && <Link to={`/student/courses/${course.id}/modules/${course.nextModule.id}`} className="btn bg-white text-brand-dark hover:bg-brand-soft">Continue: {course.nextModule.title}</Link>}
+                {course.nextModule && <Link to={`/student/courses/${course.id}/modules/${course.nextModule.id}`} className="btn bg-surface text-brand-dark hover:bg-brand-soft">Continue: {course.nextModule.title}</Link>}
                 <button type="button" onClick={() => leave(course)} disabled={busy} className="btn border border-white/40 text-white hover:bg-white/10">Leave course</button>
               </div>
             </div>
           ) : (
-            <button type="button" onClick={enroll} disabled={busy} className="btn mt-6 bg-white text-brand-dark hover:bg-brand-soft">{busy ? 'Enrolling…' : 'Enroll in this course'}</button>
+            <button type="button" onClick={enroll} disabled={busy} className="btn mt-6 bg-surface text-brand-dark hover:bg-brand-soft">{busy ? 'Enrolling…' : 'Enroll in this course'}</button>
           )}
         </section>
 

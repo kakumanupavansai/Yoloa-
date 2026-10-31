@@ -4,6 +4,7 @@ import Avatar from '../ui/Avatar'
 import { useAuth } from '../../context/AuthContext'
 import { useMessaging } from '../../context/MessagingContext'
 import * as I from '../ui/Icons'
+import ThemeToggle from './ThemeToggle'
 
 // Only destinations that are implemented are listed (notes, library and the AI chatbot are postponed).
 export const studentNav = [
@@ -11,16 +12,15 @@ export const studentNav = [
   { to: '/student/courses', label: 'Course library', icon: I.BookIcon },
   { to: '/student/my-courses', label: 'My courses', icon: I.LayersIcon },
   { to: '/student/progress', label: 'Learning progress', icon: I.ChartIcon },
-  { to: '/student/messages', label: 'Messages', icon: I.ChatIcon, badge: 'unread' },
+  { to: '/student/community', label: 'Community feed', icon: I.GlobeIcon },
+  { to: '/student/messages', label: 'Private messages', icon: I.ChatIcon, badge: 'unread' },
   { to: '/student/profile', label: 'Profile', icon: I.UserIcon },
 ]
 export const adminNav = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: I.DashboardIcon },
   { to: '/admin/courses', label: 'Courses', icon: I.BookIcon },
-  { to: '/admin/exams', label: 'Assessments', icon: I.ClipboardIcon },
   { to: '/admin/students', label: 'Students', icon: I.UsersIcon },
   { to: '/admin/analytics', label: 'Analytics', icon: I.ChartIcon },
-  { to: '/admin/question-import', label: 'Question import', icon: I.ImportIcon },
   { to: '/admin/profile', label: 'Profile', icon: I.UserIcon },
 ]
 
@@ -59,6 +59,7 @@ export function NavLinks() {
             <div className="min-w-0 leading-tight"><p className="truncate text-sm font-semibold">{user.name}</p><p className="text-xs capitalize text-ink-muted">{user.role}</p></div>
           </div>
         )}
+        <ThemeToggle />
         <button type="button" onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink-soft hover:bg-danger-soft hover:text-danger">
           <I.LogoutIcon className="h-5 w-5" />Log out
         </button>
@@ -70,7 +71,7 @@ export function NavLinks() {
 // Desktop sidebar: only from the `lg` breakpoint (>=1024px). Below that the MobileNav drawer is used.
 export default function Sidebar() {
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-white py-6 lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-surface py-6 lg:flex">
       <div className="px-6"><Logo className="text-[13px]" /></div>
       <NavLinks />
     </aside>

@@ -69,7 +69,7 @@ export default function Register() {
           <FormAlert>{error}</FormAlert>
           <SubmitButton busy={busy} busyLabel="Creating account…">Create account</SubmitButton>
         </form>
-        <p className="mt-6 text-center text-sm text-gray-600">Already have an account? <Link to="/login" className={textLink}>Sign in</Link></p>
+        <p className="mt-6 text-center text-sm text-ink-soft">Already have an account? <Link to="/login" className={textLink}>Sign in</Link></p>
       </AuthCard>
     </AuthShell>
   )

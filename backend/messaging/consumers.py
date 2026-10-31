@@ -16,6 +16,7 @@ from django.utils.crypto import constant_time_compare
 from lms.models import User
 
 from . import services
+from .feed import FEED_GROUP
 from .services import MessagingError, is_student, user_group
 
 MAX_FRAME_BYTES = 32 * 1024
@@ -62,6 +63,8 @@ class MessagingConsumer(AsyncJsonWebsocketConsumer):
         self.user_id = user.pk
         self.checked_at = time.monotonic()
         await self.channel_layer.group_add(user_group(self.user_id), self.channel_name)
+        # Every student socket also receives public feed events (never private ones: those go to the user's own group).
+        await self.channel_layer.group_add(FEED_GROUP, self.channel_name)
         await self.accept()
         latest = await database_sync_to_async(services.latest_message_id)(user)
         try:
@@ -73,6 +76,7 @@ class MessagingConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, code):
         if self.user_id is not None:
             await self.channel_layer.group_discard(user_group(self.user_id), self.channel_name)
+            await self.channel_layer.group_discard(FEED_GROUP, self.channel_name)
 
     async def still_valid(self, force=False):
         if not force and time.monotonic() - self.checked_at < REVALIDATE_SECONDS:
@@ -140,6 +144,14 @@ class MessagingConsumer(AsyncJsonWebsocketConsumer):
     async def chat_typing(self, event):
         if await self.still_valid():
             await self.send_json({'type': 'typing', 'conversationId': event['conversationId'], 'userId': event['userId']})
+
+    async def feed_post(self, event):
+        if await self.still_valid():
+            await self.send_json({'type': 'feed.post', 'post': event['post']})
+
+    async def feed_delete(self, event):
+        if await self.still_valid():
+            await self.send_json({'type': 'feed.delete', 'postId': event['postId']})
 
     async def chat_revalidate(self, event):
         await self.still_valid(force=True)

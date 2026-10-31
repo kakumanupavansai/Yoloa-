@@ -7,6 +7,7 @@ import { useConfirm } from '../../components/ui/Feedback'
 import { PageHeader, fmtDateTime, pct } from '../../components/ui/Primitives'
 import { ClockIcon, LockIcon } from '../../components/ui/Icons'
 import { fmtTime } from '../../utils'
+import { QuizImage } from '../../components/admin/QuizImageField'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
@@ -225,6 +226,7 @@ function Runner({ assessment, final, onDone }) {
       <fieldset className="mt-6 rounded-2xl border border-line p-4 sm:p-6">
         <legend className="px-1 text-xs font-semibold text-ink-muted">Question {i + 1} of {qs.length} · {q.points} point{q.points > 1 ? 's' : ''}{multiple ? ' · select all that apply' : ''}</legend>
         <p className="text-lg font-semibold">{q.text}</p>
+        <QuizImage id={q.imageId} alt={`Image for question ${i + 1}`} className="mt-4 max-h-80" />
         {q.questionType === 'short' ? (
           <label className="mt-5 block"><span className="label">Your answer</span><input aria-label={`Answer for question ${i + 1}`} className="input" value={selected || ''} onChange={(event) => choose(event.target.value)} /></label>
         ) : (
@@ -234,9 +236,12 @@ function Runner({ assessment, final, onDone }) {
               const value = multiple ? (on ? selected.filter((item) => item !== k) : [...(Array.isArray(selected) ? selected : []), k]) : q.questionType === 'true_false' ? k === 0 : k
               return (
                 <button key={k} type="button" role={multiple ? 'checkbox' : 'radio'} aria-checked={on} onClick={() => choose(value)}
-                  className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left text-sm transition ${on ? 'border-brand bg-brand-soft' : 'border-line bg-white hover:border-brand/40'}`}>
+                  className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left text-sm transition ${on ? 'border-brand bg-brand-soft' : 'border-line bg-surface hover:border-brand/40'}`}>
                   <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${on ? 'bg-brand text-white' : 'bg-ground'}`}>{q.questionType === 'true_false' ? (k === 0 ? 'T' : 'F') : LETTERS[k]}</span>
-                  <span>{choice}</span>
+                  <span className="flex min-w-0 flex-col gap-2">
+                    {q.choiceImages?.[k] && <QuizImage id={q.choiceImages[k]} alt={`Choice ${LETTERS[k]}`} className="max-h-40" />}
+                    {choice && <span>{choice}</span>}
+                  </span>
                 </button>
               )
             })}
@@ -247,7 +252,7 @@ function Runner({ assessment, final, onDone }) {
         {qs.map((item, n) => {
           const done = answers[item.id] !== undefined && answers[item.id] !== '' && !(Array.isArray(answers[item.id]) && !answers[item.id].length)
           return <button key={item.id} type="button" onClick={() => setI(n)} aria-label={`Go to question ${n + 1}${done ? ' (answered)' : ''}`} aria-current={n === i ? 'step' : undefined}
-            className={`h-9 w-9 rounded-full text-xs font-bold ${n === i ? 'ring-2 ring-brand ring-offset-2' : ''} ${done ? 'bg-brand text-white' : 'bg-ground'}`}>{n + 1}</button>
+            className={`h-9 w-9 rounded-full text-xs font-bold ${n === i ? 'ring-2 ring-brand ring-offset-2 ring-offset-surface' : ''} ${done ? 'bg-brand text-white' : 'bg-ground'}`}>{n + 1}</button>
         })}
       </div>
       {error && <p role="alert" className="mt-4 text-sm text-danger">{error} {saveState === 'error' && !busy && <button type="button" onClick={() => persist(answersRef.current, version.current).catch(() => {})} className="font-semibold underline">Retry save</button>}</p>}
@@ -302,17 +307,25 @@ function ReviewItem({ item, number }) {
   return (
     <li className={`rounded-2xl border-l-4 bg-ground p-4 ${item.isCorrect ? 'border-success' : 'border-danger'}`}>
       <p className="text-sm font-semibold">{number}. {item.text} <span className={`ml-2 text-xs ${item.isCorrect ? 'text-success' : 'text-danger'}`}>{item.isCorrect ? `+${item.earned ?? item.points}` : skipped ? 'Skipped' : 'Incorrect'}</span></p>
+      <QuizImage id={item.imageId} alt={`Image for question ${number}`} className="mt-2 max-h-56" />
       {item.questionType === 'short' ? (
         <p className="mt-2 text-sm">Your answer: {skipped ? '—' : item.chosen}{item.expectedAnswer && <span className="font-semibold text-success"> · Expected: {item.expectedAnswer}</span>}</p>
       ) : (
         <ul className="mt-2 grid gap-2 md:grid-cols-2">{choices.map((choice, k) => (
-          <li key={k} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${correct.includes(k) ? 'bg-success-soft' : chosen.includes(k) ? 'bg-danger-soft' : 'bg-white'}`}>
-            <span className="font-bold">{item.questionType === 'true_false' ? '' : `${LETTERS[k]}.`}</span><span className="flex-1">{choice}</span>
+          <li key={k} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${correct.includes(k) ? 'bg-success-soft' : chosen.includes(k) ? 'bg-danger-soft' : 'bg-surface'}`}>
+            <span className="font-bold">{item.questionType === 'true_false' ? '' : `${LETTERS[k]}.`}</span>
+            <span className="flex flex-1 flex-wrap items-center gap-2">{item.choiceImages?.[k] && <QuizImage id={item.choiceImages[k]} alt={`Choice ${LETTERS[k]}`} className="max-h-20" />}{choice}</span>
             {correct.includes(k) && <span className="text-xs font-bold text-success">Correct</span>}
             {chosen.includes(k) && !correct.includes(k) && <span className="text-xs font-bold text-danger">Your answer</span>}
           </li>
         ))}</ul>
       )}
+      {(item.explanation || item.explanationImageId) && (
+        <div className="mt-3 rounded-xl border border-line bg-surface p-3 text-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-ink-muted">Explanation</p>
+          {item.explanation && <p className="mt-1 whitespace-pre-wrap">{item.explanation}</p>}
+          <QuizImage id={item.explanationImageId} alt={`Explanation for question ${number}`} className="mt-2 max-h-60" />
+        </div>)}
     </li>
   )
 }

@@ -8,7 +8,6 @@ import App from '../App'
 import { AuthProvider } from '../context/AuthContext'
 import { adminApi, authApi, coursesApi, examsApi, modulesApi, profileApi, resourcesApi } from '../services/api'
 import { ApiError } from '../services/http'
-import { matchesSearch } from '../pages/admin/Exams'
 import { guessMapping } from '../components/admin/QuestionImportPanel'
 
 const MOCK = String(import.meta.env.VITE_USE_MOCK) === 'true'
@@ -22,82 +21,14 @@ afterEach(() => vi.restoreAllMocks())
 const exam = (id, over = {}) => ({ id, title: `Quiz ${id}`, subject: '', questions: 3, points: 3, status: 'Draft', assessmentType: 'module_quiz',
   assessmentTypeLabel: 'Module quiz', passPercent: 50, courseId: 1, courseTitle: 'Python Programming', moduleId: id, moduleTitle: `Module ${id}`, ...over })
 
-describe('assessment search matching', () => {
-  it('matches every word against title, course, module and type, ignoring case and accents', () => {
-    const row = exam(1, { title: 'Loops quiz', courseTitle: 'Python Programming', moduleTitle: 'Control flow' })
-    expect(matchesSearch(row, 'loops')).toBe(true)
-    expect(matchesSearch(row, 'PYTHON control')).toBe(true)
-    expect(matchesSearch(row, 'module quiz')).toBe(true)
-    expect(matchesSearch(row, 'python final')).toBe(false)
-    expect(matchesSearch(exam(2, { title: 'Résumé basics' }), 'resume')).toBe(true)
-    expect(matchesSearch(row, '   ')).toBe(true)
-  })
-})
-
-describe.skipIf(!MOCK)('assessments page search', () => {
-  const rows = [
-    exam(1, { title: 'Variables quiz', courseTitle: 'Python Programming', moduleTitle: 'Getting started' }),
-    exam(2, { title: 'Selectors quiz', courseTitle: 'Web Development', moduleTitle: 'CSS basics' }),
-    exam(3, { title: 'Python final examination', assessmentType: 'final_exam', assessmentTypeLabel: 'Final exam', moduleId: null, moduleTitle: '', courseTitle: 'Python Programming' }),
-    ...Array.from({ length: 17 }, (_, index) => exam(10 + index, { title: `Graph quiz ${index + 1}`, courseTitle: 'Data Structures', moduleTitle: `Graphs ${index + 1}` })),
-  ]
-  const table = () => screen.getByRole('table')
-
-  it('filters by title, course and module, combines with the type filter, and clears', async () => {
-    vi.spyOn(examsApi, 'list').mockResolvedValue(rows)
-    const user = userEvent.setup()
-    open('/admin/exams')
-    const search = await screen.findByRole('searchbox', { name: 'Search assessments' })
-    expect(search).toHaveAttribute('placeholder', expect.stringMatching(/search assessments by title/i))
-    await user.type(search, 'selectors')
-    expect(within(table()).getByText('Selectors quiz')).toBeInTheDocument()
-    expect(within(table()).queryByText('Variables quiz')).not.toBeInTheDocument()
-    await user.clear(search); await user.type(search, 'python')
-    expect(within(table()).getByText('Variables quiz')).toBeInTheDocument()
-    expect(within(table()).getByText('Python final examination')).toBeInTheDocument()
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Filter by type' }), 'final_exam')
-    expect(within(table()).queryByText('Variables quiz')).not.toBeInTheDocument()
-    expect(within(table()).getByText('Python final examination')).toBeInTheDocument()
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Filter by type' }), 'all')
-    await user.clear(search); await user.type(search, 'css basics')
-    expect(within(table()).getByText('Selectors quiz')).toBeInTheDocument()
-    await user.clear(search)
-    expect(screen.getByText(/Showing 1–15 of 20/)).toBeInTheDocument()
-  })
-
-  it('shows a no-match message and keeps edit and import actions on results', async () => {
-    vi.spyOn(examsApi, 'list').mockResolvedValue(rows)
-    const user = userEvent.setup()
-    open('/admin/exams')
-    const search = await screen.findByRole('searchbox', { name: 'Search assessments' })
-    await user.type(search, 'quantum')
-    expect(screen.getByText('No assessments match “quantum”.')).toBeInTheDocument()
-    await user.clear(search); await user.type(search, 'variables')
-    expect(screen.getByRole('link', { name: 'Edit Variables quiz' })).toHaveAttribute('href', '/admin/exams/1')
-    expect(screen.getByRole('link', { name: 'Import questions into Variables quiz' })).toHaveAttribute('href', '/admin/exams/1?import=1')
-  })
-
-  it('pages results and returns to the first page when the search changes', async () => {
-    vi.spyOn(examsApi, 'list').mockResolvedValue(rows)
-    const user = userEvent.setup()
-    open('/admin/exams')
-    await screen.findByText('Variables quiz')
-    await user.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument()
-    expect(screen.queryByText('Variables quiz')).not.toBeInTheDocument()
-    await user.type(screen.getByRole('searchbox', { name: 'Search assessments' }), 'graph')
-    expect(screen.getByText(/Showing 1–15 of 17 \(filtered from 20\)/)).toBeInTheDocument()
-    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument()
-  })
-
-  it('shows a loading state and then the API error with retry', async () => {
-    const list = vi.spyOn(examsApi, 'list').mockRejectedValueOnce(new ApiError('Server unavailable', 500)).mockResolvedValue(rows)
-    const user = userEvent.setup()
-    open('/admin/exams')
-    expect(await screen.findByText('Server unavailable')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /retry/i }))
-    expect(await screen.findByText('Variables quiz')).toBeInTheDocument()
-    expect(list).toHaveBeenCalledTimes(2)
+describe.skipIf(!MOCK)('removed assessments list', () => {
+  it('sends the old Assessments and Question import addresses to Courses', async () => {
+    vi.spyOn(coursesApi, 'list').mockResolvedValue([])
+    for (const path of ['/admin/exams', '/admin/question-import']) {
+      const view = open(path)
+      expect(await screen.findByRole('heading', { name: 'Courses' })).toBeInTheDocument()
+      view.unmount()
+    }
   })
 })
 
@@ -192,11 +123,20 @@ describe.skipIf(!MOCK)('Excel import on the assessment edit page', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(/^This file is not a valid .xlsx workbook.$/)
   })
 
-  it('is offered only after a new assessment has been saved', async () => {
+  it('saves a brand-new quiz as a draft and then opens the import, so the first quiz of a module can import too', { timeout: 20000 }, async () => {
     vi.spyOn(coursesApi, 'list').mockResolvedValue([{ id: 5, title: 'Algorithms' }])
     vi.spyOn(coursesApi, 'manage').mockResolvedValue(managed)
+    const create = vi.spyOn(examsApi, 'create').mockResolvedValue({ id: 7, courseId: 5 })
+    vi.spyOn(examsApi, 'get').mockResolvedValue(editable([]))
+    const user = userEvent.setup()
     open('/admin/exams/new?type=module_quiz&courseId=5&moduleId=50')
-    expect(await screen.findByRole('button', { name: 'Import Questions from Excel' })).toBeDisabled()
+    const button = await screen.findByRole('button', { name: 'Import Questions from Excel' })
+    await waitFor(() => expect(screen.getByLabelText('Title')).toHaveValue('Sorting quiz'))
+    expect(button).toBeEnabled()
+    await user.click(button)
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+    expect(create.mock.calls[0][0]).toMatchObject({ status: 'draft', courseId: 5, moduleId: 50, questions: [] })
+    expect(await screen.findByRole('dialog', { name: 'Import Questions from Excel' })).toBeInTheDocument()
   })
 })
 

@@ -67,16 +67,16 @@ export default function ResetPassword() {
     body = (
       <div className="space-y-5">
         <FormAlert tone="success">{done}</FormAlert>
-        <Link to="/" className="flex w-full items-center justify-center rounded-xl bg-brand-dark px-4 py-3.5 text-sm font-bold text-white hover:bg-brand focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/40">Return to sign in</Link>
+        <Link to="/" className="flex w-full items-center justify-center rounded-xl bg-brand px-4 py-3.5 text-sm font-bold text-white hover:bg-brand-strong focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/40">Return to sign in</Link>
       </div>
     )
   } else if (link.checking) {
-    body = <p role="status" className="flex items-center gap-3 text-sm text-gray-600"><Spinner className="h-5 w-5 text-brand" />Checking your reset link…</p>
+    body = <p role="status" className="flex items-center gap-3 text-sm text-ink-soft"><Spinner className="h-5 w-5 text-brand" />Checking your reset link…</p>
   } else if (!link.valid) {
     body = (
       <div className="space-y-5">
         <FormAlert>{link.error}</FormAlert>
-        <p className="text-sm text-gray-600">Reset links work once and expire after one hour.</p>
+        <p className="text-sm text-ink-soft">Reset links work once and expire after one hour.</p>
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <Link to="/forgot-password" className={textLink}>Request a new link</Link>
           <Link to="/" className={textLink}>Return to sign in</Link>
@@ -92,7 +92,7 @@ export default function ResetPassword() {
           onChange={update('passwordConfirmation')} error={errors.passwordConfirmation} disabled={busy} />
         <FormAlert>{error}</FormAlert>
         <SubmitButton busy={busy} busyLabel="Saving…">Update password</SubmitButton>
-        <p className="text-center text-sm text-gray-600"><Link to="/" className={textLink}>Return to sign in</Link></p>
+        <p className="text-center text-sm text-ink-soft"><Link to="/" className={textLink}>Return to sign in</Link></p>
       </form>
     )
   }

@@ -91,6 +91,12 @@ export const examsApi = {
   remove: (id) => del(`/exams/${id}`),
 }
 
+// Images for questions, answer options and explanations. Streamed by Django after a permission check.
+export const quizImagesApi = {
+  upload: (file) => { const form = new FormData(); form.append('file', file); return post('/admin/quiz-images', form) },
+  url: (id) => `${BASE}/quiz-images/${id}`,
+}
+
 export const adminApi = {
   students: (params = {}) => get(`/admin/students${query(params)}`),
   student: (id) => get(`/admin/students/${id}`),
@@ -98,6 +104,7 @@ export const adminApi = {
   reviewAttempt: (id, data) => post(`/admin/attempts/${id}/review`, data),
   loginAnalytics: (params = {}) => get(`/admin/analytics/logins${query(params)}`),
   examAnalytics: (params = {}) => get(`/admin/analytics/exams${query(params)}`),
+  analyticsOverview: (params = {}) => get(`/admin/analytics/overview${query(params)}`),
   uploadQuestions: (formData) => post('/admin/question-imports/upload', formData),
   previewQuestions: (batchId, payload) => post(`/admin/question-imports/${batchId}/preview`, payload),
   confirmQuestions: (batchId, idempotencyKey) => post(`/admin/question-imports/${batchId}/confirm`, { idempotencyKey }),
@@ -131,5 +138,19 @@ export const messagesApi = {
   markRead: (id, messageId) => post(`/messages/conversations/${id}/read`, { messageId }),
   sync: (after) => get(`/messages/sync${query({ after })}`),
   unread: () => get('/messages/unread'),
+  attachmentUrl: (attachment, { download = false } = {}) => `${BASE}${attachment.url}${download ? '?download=1' : ''}`,
+}
+
+// Public student feed (separate tables and endpoints from private messages).
+export const feedApi = {
+  list: ({ before, limit } = {}) => get(`/feed/posts${query({ before, limit })}`),
+  create: ({ body = '', link = '', files = [] }) => {
+    const form = new FormData()
+    form.append('body', body)
+    form.append('link', link)
+    files.forEach((file) => form.append('files', file))
+    return post('/feed/posts', form)
+  },
+  remove: (id) => del(`/feed/posts/${id}`),
   attachmentUrl: (attachment, { download = false } = {}) => `${BASE}${attachment.url}${download ? '?download=1' : ''}`,
 }

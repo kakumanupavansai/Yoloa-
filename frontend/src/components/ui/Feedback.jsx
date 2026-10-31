@@ -19,9 +19,9 @@ export function Modal({ open, title, subtitle, onClose, children, footer, wide =
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-ink/40" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-scrim/50" onClick={onClose} aria-hidden="true" />
       <section ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId}
-        className={`relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-pop outline-none sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`}>
+        className={`relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-surface shadow-pop outline-none sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`}>
         <header className="flex items-start gap-4 border-b border-line px-5 py-4 sm:px-6">
           <div className="min-w-0 flex-1">
             <h2 id={titleId} className="text-lg font-bold">{title}</h2>
@@ -70,7 +70,7 @@ export function FeedbackProvider({ children }) {
       <Modal open={Boolean(dialog)} title={dialog?.title || 'Are you sure?'} onClose={() => close(false)}
         footer={<>
           <button type="button" className="btn-ghost" onClick={() => close(false)}>{dialog?.cancelLabel || 'Cancel'}</button>
-          <button type="button" className={dialog?.tone === 'danger' ? 'btn bg-danger text-white hover:opacity-90' : 'btn-primary'} onClick={() => close(true)}>{dialog?.confirmLabel || 'Confirm'}</button>
+          <button type="button" className={dialog?.tone === 'danger' ? 'btn-danger-solid' : 'btn-primary'} onClick={() => close(true)}>{dialog?.confirmLabel || 'Confirm'}</button>
         </>}>
         <p className="text-sm leading-relaxed text-ink-soft">{dialog?.message}</p>
       </Modal>

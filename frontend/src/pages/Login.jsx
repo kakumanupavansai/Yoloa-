@@ -52,12 +52,12 @@ function GoogleSignIn({ disabled }) {
     <div>
       <button type="button" onClick={start} disabled={disabled || status.loading || unavailable || redirecting}
         aria-describedby={unavailable ? 'google-unavailable' : undefined}
-        className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-bold text-ink shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-60">
-        {redirecting || status.loading ? <Spinner className="h-5 w-5 text-gray-500" /> : <GoogleIcon />}
+        className="flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-bold text-ink shadow-sm transition hover:bg-ground focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-60">
+        {redirecting || status.loading ? <Spinner className="h-5 w-5 text-ink-muted" /> : <GoogleIcon />}
         {redirecting ? 'Redirecting to Google…' : 'Continue with Google'}
       </button>
       {unavailable && (
-        <p id="google-unavailable" className="mt-2 text-xs text-gray-500">
+        <p id="google-unavailable" className="mt-2 text-xs text-ink-muted">
           {status.error ? 'Google sign-in status could not be checked.' : 'Google sign-in is not configured on the server yet.'} Use your email and password instead.
         </p>
       )}
@@ -130,11 +130,11 @@ export default function Login({ role = 'student' }) {
           <SubmitButton busy={busy} busyLabel="Signing in…" variant={admin ? 'admin' : 'primary'}>Sign in</SubmitButton>
         </form>
         {!admin && (
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-ink-soft">
             New to YOLOA? <Link to="/register" className={textLink}>Create an account</Link>
           </p>
         )}
-        {admin && <p className="mt-6 text-center text-xs text-gray-500">Administrator accounts are created by the portal owner. Students cannot register here.</p>}
+        {admin && <p className="mt-6 text-center text-xs text-ink-muted">Administrator accounts are created by the portal owner. Students cannot register here.</p>}
       </AuthCard>
     </AuthShell>
   )

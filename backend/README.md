@@ -49,7 +49,7 @@ The browser uses Django database-backed sessions in an HTTP-only cookie. Mutatin
 | POST `/api/auth/register` | public | `{fullName,email,password,passwordConfirmation}` → student session |
 | POST `/api/auth/logout` | signed in | destroys the current session |
 | GET `/api/auth/me` | signed in | current session user |
-| POST `/api/auth/password-reset` | public | generic response (same for unknown emails) with `delivery`: `smtp` or `development` (console); 503 when SMTP is selected but `EMAIL_HOST` is blank |
+| POST `/api/auth/password-reset` | public | generic response for known and unknown emails; `delivery` is `smtp` or `development`; sends a one-hour reset link through configured SMTP |
 | POST `/api/auth/password-reset/validate` | public | `{uid,token}`; lets the reset page reject invalid, expired, or used links before showing the form |
 | POST `/api/auth/password-reset/confirm` | public | `{uid,token,password,passwordConfirmation}`; reset tokens expire in one hour and are single-use |
 | GET `/api/auth/google/status` | public | `{configured}` only; never exposes the client ID or secret |
@@ -152,4 +152,21 @@ Settings are read from `backend/.env` (loaded explicitly from the backend folder
 
 `POST /api/auth/login` takes an optional `role` naming the portal (`student` or `admin`). It never grants privileges: a mismatch with the stored account role returns 403 without creating a session.
 
-For Google sign-in, the authorised redirect URI registered on the Google OAuth web client must exactly match `GOOGLE_OAUTH_REDIRECT_URI` (scheme, host, port, and path), otherwise Google shows `Error 400: redirect_uri_mismatch`. Open the frontend on `localhost` (not `127.0.0.1`) so the session cookie that carries the OAuth state is sent to the callback. For Google sign-in, create a Google OAuth web client and set `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, and the registered redirect URI (`GOOGLE_OAUTH_REDIRECT_URI`). The default local callback is `http://localhost:8000/api/auth/google/callback`. For password reset delivery, configure an SMTP `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and TLS/SSL settings. Without SMTP, Django prints reset messages to the backend terminal for local development. Production should set both session and CSRF cookie secure flags, use HTTPS, and set `SameSite=None` only when the frontend and API are truly cross-site.
+For Google sign-in, the authorised redirect URI registered on the Google OAuth web client must exactly match `GOOGLE_OAUTH_REDIRECT_URI` (scheme, host, port, and path), otherwise Google shows `Error 400: redirect_uri_mismatch`. Open the frontend on `localhost` (not `127.0.0.1`) so the session cookie that carries the OAuth state is sent to the callback. For Google sign-in, create a Google OAuth web client and set `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, and the registered redirect URI (`GOOGLE_OAUTH_REDIRECT_URI`). The default local callback is `http://localhost:8000/api/auth/google/callback`.
+
+### Gmail password-reset delivery
+The reset request uses `/reset-password?uid=…&token=…` on `FRONTEND_URL` and sends through Django SMTP. Configure these variables in `backend/.env` (never in a `VITE_*` variable): `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend`, `EMAIL_HOST=smtp.gmail.com`, `EMAIL_PORT=587`, `EMAIL_USE_TLS=1`, `EMAIL_USE_SSL=0`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and `DEFAULT_FROM_EMAIL`. For Gmail, enable 2-Step Verification on the sending Google account, create an App Password in the Google Account Security settings, and use that 16-character App Password as `EMAIL_HOST_PASSWORD` (not the account's normal password). Use the same Gmail address for `EMAIL_HOST_USER` and the sender in `DEFAULT_FROM_EMAIL`. Keep `.env` private and restart Django after changing it. Set `FRONTEND_URL` to the deployed frontend origin in production; locally it defaults to `http://localhost:5173`.
+
+Automated Django tests use Django's in-memory email backend and do not send real email. Run `python manage.py test lms --noinput` using the isolated `test_<DB_NAME>` database configuration described above. To test real delivery, start Django with the Gmail values configured, request a reset at `/forgot-password` for a test student account, then follow the received link. Gmail authentication or SMTP errors are logged by exception type only; the public request keeps its generic response. Check the backend process logs and verify Gmail's App Password, account, port 587, TLS, and outbound SMTP access if delivery fails. Never log reset links or tokens. Production should set both session and CSRF cookie secure flags, use HTTPS, and set `SameSite=None` only when the frontend and API are truly cross-site.
+
+### Added 2026-10-31
+| Endpoint | Access | Notes |
+|---|---|---|
+| POST `/api/admin/quiz-images` | admin | multipart `file`; JPG/PNG/GIF/WEBP up to 5 MB, content verified with Pillow; returns `{id,url}`. Questions reference images by id (`imageId`, `choiceImages`, `explanationImageId`) and may carry an `explanation`. |
+| GET `/api/quiz-images/<id>` | signed in | admins; students only for published quizzes they can open or attempts of their own; explanation images only after the attempt is finalized. Same 404 for missing and forbidden. |
+| DELETE `/api/exams/<id>` | admin | deletes a quiz/exam without attempts (questions go with it, course and module stay, enrollment percentages are recalculated); with attempts it answers 409 `code: has_attempts` and nothing is deleted. |
+| GET `/api/admin/analytics/overview?start=&end=` | admin | dashboard data (default last 30 days, at most a year): students, daily registrations/logins, course enrollments and completion, quiz score distribution. |
+| GET `/api/student/progress` | student | now also returns `summary`, `timeline` (own finalized attempts) and `moduleCompletions`. |
+| GET/POST `/api/feed/posts`, DELETE `/api/feed/posts/<id>`, GET `/api/feed/attachments/<id>` | student | public student feed (text, http(s) link, up to 5 files using the chat upload rules). Authors delete only their own posts. Separate tables from private messages; new/deleted posts are pushed on the existing `/ws/messages/` socket (`feed.post`, `feed.delete`). |
+
+Migrations: `lms 0008_quiz_images`, `messaging 0002_public_feed` (both additive).

@@ -7,6 +7,7 @@ import { ChevronDown, LogoutIcon, UserIcon } from '../ui/Icons'
 import MobileNav from './MobileNav'
 import { Loading } from '../ui/States'
 import Sidebar, { useSignOut } from './Sidebar'
+import ThemeToggle from './ThemeToggle'
 
 // Desktop top bar: today's date and the profile menu (profile + sign out).
 function ProfileMenu() {
@@ -27,13 +28,13 @@ function ProfileMenu() {
   return (
     <div className="relative" ref={wrap}>
       <button type="button" onClick={() => setOpen((value) => !value)} aria-haspopup="menu" aria-expanded={open}
-        aria-label={`Account menu for ${user.name}`} className="flex items-center gap-2.5 rounded-xl border border-line bg-white py-1.5 pl-1.5 pr-3 hover:bg-ground">
+        aria-label={`Account menu for ${user.name}`} className="flex items-center gap-2.5 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3 hover:bg-ground">
         <Avatar src={user.avatar} name={user.name} size={32} />
         <span className="max-w-[160px] truncate text-sm font-semibold">{user.name}</span>
         <ChevronDown className="h-4 w-4 text-ink-muted" />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 z-40 mt-2 w-64 rounded-2xl border border-line bg-white p-2 shadow-pop">
+        <div role="menu" className="absolute right-0 z-40 mt-2 w-64 rounded-2xl border border-line bg-surface p-2 shadow-pop">
           <div className="px-3 py-2"><p className="truncate text-sm font-semibold">{user.name}</p><p className="truncate text-xs text-ink-muted">{user.email}</p></div>
           <div className="my-1 h-px bg-line" />
           <Link role="menuitem" to={`${base}/profile`} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-ground"><UserIcon className="h-4 w-4" />Profile</Link>
@@ -58,6 +59,7 @@ export default function AppLayout() {
           <MobileNav />
           <div className="hidden items-center justify-end gap-4 px-8 pt-5 lg:flex">
             <span className="text-sm text-ink-muted">{today}</span>
+            <ThemeToggle compact />
             <ProfileMenu />
           </div>
           <main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-5 sm:px-6 lg:px-8 lg:pt-4">

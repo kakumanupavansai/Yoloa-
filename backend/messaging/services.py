@@ -333,6 +333,10 @@ def typing_targets(user, conversation_id):
 def broadcast(user_ids, event_type, data):
     """Deliver an event to every open socket of the given users. A Redis outage never loses a message:
     it is already stored, and clients fetch it with /messages/sync when they reconnect."""
+    broadcast_groups([user_group(user_id) for user_id in sorted(set(user_ids))], event_type, data)
+
+
+def broadcast_groups(groups, event_type, data):
     layer = get_channel_layer()
     if layer is None:
         return
@@ -340,12 +344,12 @@ def broadcast(user_ids, event_type, data):
     # One event-loop round for all recipients, stopping at the first failure: when Redis is down, retrying it once per
     # recipient only delays the HTTP response that confirms the message was stored.
     async def send_all():
-        for user_id in set(user_ids):
-            await layer.group_send(user_group(user_id), {'type': event_type, **data})
+        for group in groups:
+            await layer.group_send(group, {'type': event_type, **data})
     try:
         async_to_sync(send_all)()
     except Exception:  # noqa: BLE001 - delivery is best effort; storage already succeeded
-        logger.exception('Real-time delivery of %s to users %s failed', event_type, sorted(set(user_ids)))
+        logger.exception('Real-time delivery of %s to %s failed', event_type, groups)
 
 
 # ───────────────────────── Uploads ─────────────────────────

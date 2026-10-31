@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { messagesApi } from '../../services/api'
 import { newClientId, useMessaging } from '../../context/MessagingContext'
 import Avatar from '../ui/Avatar'
+import RichText from '../ui/RichText'
 import { ErrorBox, Loading, Spinner } from '../ui/States'
 import { AlertIcon, ArrowLeftIcon, CloseIcon, DownloadIcon, FileIcon, PaperclipIcon, SendIcon } from '../ui/Icons'
 
@@ -54,7 +55,7 @@ function Attachment({ item, mine }) {
   }
   return (
     <a href={messagesApi.attachmentUrl(item, { download: true })}
-      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${mine ? 'border-white/30 bg-white/10 hover:bg-white/20' : 'border-line bg-white hover:bg-ground'}`}>
+      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${mine ? 'border-white/30 bg-white/10 hover:bg-white/20' : 'border-line bg-surface hover:bg-ground'}`}>
       <FileIcon className="h-5 w-5 shrink-0" />
       <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{item.name}</span><span className={`text-xs ${mine ? 'text-white/80' : 'text-ink-muted'}`}>{fmtSize(item.size)}</span></span>
       <DownloadIcon className="h-4 w-4 shrink-0" aria-label="Download" />
@@ -69,7 +70,7 @@ function Bubble({ message, mine, seen, pending, onRetry, onDiscard }) {
         <div className={`space-y-2 rounded-2xl px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-md bg-brand text-white' : 'rounded-bl-md bg-ground text-ink'} ${pending?.status === 'sending' ? 'opacity-70' : ''}`}>
           {message.attachments?.map((item) => <Attachment key={item.id} item={item} mine={mine} />)}
           {pending?.files?.map((file) => <p key={file.name} className="flex items-center gap-1.5 text-xs"><PaperclipIcon className="h-3.5 w-3.5" />{file.name}</p>)}
-          {message.body && <p className="whitespace-pre-wrap break-words">{message.body}</p>}
+          {message.body && <RichText text={message.body} />}
         </div>
         <p className="mt-1 flex items-center gap-2 px-1 text-[11px] text-ink-muted">
           {pending?.status === 'sending' && <>Sending…</>}

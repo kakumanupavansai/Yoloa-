@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core import mail
-from django.test import override_settings
+from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 from openpyxl import Workbook
 from rest_framework.test import APITestCase
@@ -14,6 +14,21 @@ from rest_framework.test import APIClient
 from lms import models as m
 from lms.test_support import RateLimitIsolationMixin
 from lms.views import finalize_expired_attempts
+from config.settings import _env_bool
+
+
+class EnvironmentBooleanTests(SimpleTestCase):
+    def test_environment_boolean_values(self):
+        from unittest.mock import patch
+
+        for value in ('True', 'true', '1'):
+            with self.subTest(value=value), patch.dict('os.environ', {'TEST_BOOLEAN': value}):
+                self.assertIs(_env_bool('TEST_BOOLEAN'), True)
+        for value in ('False', 'false', '0'):
+            with self.subTest(value=value), patch.dict('os.environ', {'TEST_BOOLEAN': value}):
+                self.assertIs(_env_bool('TEST_BOOLEAN'), False)
+        with patch.dict('os.environ', {}, clear=True):
+            self.assertIs(_env_bool('TEST_BOOLEAN', True), True)
 
 
 class AssessmentApiTests(RateLimitIsolationMixin, APITestCase):
@@ -192,6 +207,31 @@ class AssessmentApiTests(RateLimitIsolationMixin, APITestCase):
         self.assertEqual(known.status_code, 503)
         self.assertEqual(known.data, unknown.data)
         self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+                       FRONTEND_URL='https://learn.example.test')
+    def test_password_reset_email_uses_configured_frontend_url(self):
+        self.client.get('/api/auth/csrf')
+        response = self.client.post('/api/auth/password-reset', {'email': self.student.email}, format='json')
+        self.assertEqual(response.status_code, 200)
+        link = mail.outbox[0].body.splitlines()[2]
+        parsed = urlparse(link)
+        self.assertEqual(f'{parsed.scheme}://{parsed.netloc}{parsed.path}', 'https://learn.example.test/reset-password')
+        self.assertIn('uid', parse_qs(parsed.query))
+        self.assertIn('token', parse_qs(parsed.query))
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend', EMAIL_HOST='smtp.gmail.com')
+    def test_password_reset_smtp_failure_is_logged_without_leaking_link_or_token(self):
+        self.client.get('/api/auth/csrf')
+        with patch('lms.views.send_mail', side_effect=OSError('private smtp detail')), \
+                self.assertLogs('lms.views', level='ERROR') as captured:
+            response = self.client.post('/api/auth/password-reset', {'email': self.student.email}, format='json')
+        unknown = self.client.post('/api/auth/password-reset', {'email': 'missing@example.com'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, unknown.data)
+        self.assertIn('OSError', captured.output[0])
+        self.assertNotIn('private smtp detail', captured.output[0])
+        self.assertNotIn('token', captured.output[0])
 
     def test_google_status_reports_configuration_without_secrets(self):
         with override_settings(GOOGLE_OAUTH_CLIENT_ID='', GOOGLE_OAUTH_CLIENT_SECRET=''):

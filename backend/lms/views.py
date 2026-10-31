@@ -248,8 +248,8 @@ def email_delivery_mode():
 
 
 RESET_MESSAGES = {
-    'smtp': 'If an account exists for that email, a password reset link has been sent. Check your inbox.',
-    'development': ('If an account exists for that email, a password reset link has been generated. '
+    'smtp': 'If an account exists for that email, we will email a password reset link. Check your inbox.',
+    'development': ('If an account exists for that email, we will generate a password reset link. '
                     'Email delivery is in development mode, so the link is written to the server console instead of being emailed.'),
 }
 
@@ -706,9 +706,30 @@ def student_dashboard(request):
 @permission_classes([IsStudentRole])
 def student_progress(request):
     finalize_expired_attempts()
-    reports = [student_course_report(request.user, enrollment)
-               for enrollment in request.user.enrollments.select_related('course').order_by('-id')]
-    return Response({'courses': reports})
+    student = request.user  # always the session's own student; no id is accepted
+    reports = [student_course_report(student, enrollment)
+               for enrollment in student.enrollments.select_related('course').order_by('-id')]
+    modules = [module for report in reports for module in report['modules']]
+    quizzes = [module['quiz'] for module in modules if module['quiz'] and module['quiz']['attempts']]
+    total_modules = len(modules)
+    done_modules = sum(1 for module in modules if module['completed'])
+    attempts = (m.Attempt.objects.filter(student=student, status__in=FINALIZED, submitted_at__isnull=False)
+                .select_related('exam', 'exam__course').order_by('submitted_at', 'id'))
+    timeline = [{'id': attempt.id, 'at': iso(attempt.submitted_at), 'title': attempt.exam.title, 'type': attempt.exam.assessment_type,
+                 'course': attempt.course_snapshot.get('title') or (attempt.exam.course.title if attempt.exam.course_id else ''),
+                 'percent': value_number(attempt.percentage), 'passed': attempt.passed} for attempt in attempts]
+    completions = [iso(value) for value in m.ChapterProgress.objects.filter(
+        student=student, completed=True, completed_at__isnull=False, chapter__course__enrollments__student=student)
+        .order_by('completed_at').values_list('completed_at', flat=True).distinct()]
+    latest = timeline[-1] if timeline else None
+    return Response({'courses': reports, 'timeline': timeline, 'moduleCompletions': completions, 'summary': {
+        'courses': len(reports), 'completedCourses': sum(1 for report in reports if report['status'] == 'completed'),
+        'totalModules': total_modules, 'completedModules': done_modules, 'pendingModules': total_modules - done_modules,
+        'overallPercent': round(done_modules * 100 / total_modules) if total_modules else 0,
+        'quizAttempts': sum(1 for item in timeline if item['type'] != 'final_exam'),
+        'averageBestPercent': round(sum(quiz['bestPercent'] for quiz in quizzes) / len(quizzes)) if quizzes else None,
+        'bestPercent': max((item['percent'] for item in timeline), default=None),
+        'latest': latest}})
 
 
 @api_view(['GET'])
@@ -1327,6 +1348,16 @@ def normalise_answer(value, rules):
     return ' '.join(output.split())
 
 
+def image_reference(raw, index):
+    """A QuizImage id from the editor payload (None when absent). Unknown ids are rejected, never stored."""
+    if raw in (None, '', 0):
+        return None
+    image_id = to_int(raw, -1)
+    if isinstance(raw, bool) or image_id <= 0 or not m.QuizImage.objects.filter(pk=image_id).exists():
+        raise ValidationError({'questions': f'Question {index + 1} refers to an image that does not exist. Upload it again.'})
+    return image_id
+
+
 def question_data(raw, index=0):
     question_type = raw.get('questionType', raw.get('question_type', 'single'))
     if question_type not in dict(m.Question.QUESTION_TYPES):
@@ -1337,14 +1368,30 @@ def question_data(raw, index=0):
     points = to_int(raw.get('points', raw.get('marks', raw.get('score', 1))), 1)
     if points <= 0:
         raise ValidationError({'questions': f'Question {index + 1} has invalid marks.'})
-    choices = [str(choice).strip() for choice in (raw.get('choices') or split_values(raw.get('options'))) if str(choice).strip()]
+    raw_choices = raw.get('choices') or split_values(raw.get('options'))
+    raw_choice_images = raw.get('choiceImages') or []
+    if not isinstance(raw_choices, list) or not isinstance(raw_choice_images, list):
+        raise ValidationError({'questions': f'Question {index + 1} has invalid choices.'})
+    # A choice may be text, an image, or both; entries with neither are dropped (as blank text choices always were).
+    pairs = [(str(choice).strip() if choice is not None else '',
+              image_reference(raw_choice_images[k] if k < len(raw_choice_images) else None, index))
+             for k, choice in enumerate(raw_choices)]
+    pairs = [(choice, image) for choice, image in pairs if choice or image]
+    choices = [choice for choice, _ in pairs]
+    choice_images = [image for _, image in pairs]
     normalisation = raw.get('normalization') or {}
     if not isinstance(normalisation, dict):
         raise ValidationError({'questions': f'Question {index + 1} has invalid normalization rules.'})
+    explanation = str(raw.get('explanation') or '').strip()
+    if len(explanation) > 4000:
+        raise ValidationError({'questions': f'Question {index + 1}: keep the explanation under 4000 characters.'})
     correct_raw = raw.get('correctAnswers', raw.get('correct', raw.get('correctAnswer')))
     result = {'text': text, 'question_type': question_type, 'choices': choices, 'points': points, 'score': points,
               'order': index, 'normalization': normalisation, 'correct': 0, 'correct_answers': [],
-              'expected_answer': '', 'accepted_answers': []}
+              'expected_answer': '', 'accepted_answers': [],
+              'image_id': image_reference(raw.get('imageId'), index),
+              'choice_images': choice_images if question_type in ('single', 'multiple') and any(choice_images) else [],
+              'explanation': explanation, 'explanation_image_id': image_reference(raw.get('explanationImageId'), index)}
     if question_type == 'single':
         if len(choices) < 2:
             raise ValidationError({'questions': f'Question {index + 1} needs at least two choices.'})
@@ -1385,6 +1432,7 @@ def check_publishable(exam):
     for index, question in enumerate(questions):
         # Re-use authoritative validation so direct API and spreadsheet imports follow one rule.
         question_data({'text': question.text, 'questionType': question.question_type, 'choices': question.choices,
+                       'choiceImages': question.choice_images,
                        'correct': question.correct_answers if question.question_type == 'multiple' else (
                            question.correct_answers[0] if question.correct_answers else question.correct),
                        'expectedAnswer': question.expected_answer, 'acceptedAlternatives': question.accepted_answers,
@@ -1474,11 +1522,19 @@ def exam_detail(request, pk):
         return fail('Admin access required.', 403)
     exam = get_object_or_404(m.Exam.objects.select_related('course', 'module'), pk=pk)
     if request.method == 'DELETE':
-        if exam.attempts.exists():
-            return fail('Assessments with attempt history cannot be deleted. Unpublish or archive them instead.', 409)
+        # Attempts are student records (Attempt.exam is PROTECT), so an assessment with history is kept.
+        attempt_count = exam.attempts.count()
+        if attempt_count:
+            return Response({'message': f'“{exam.title}” has {attempt_count} student attempt{"" if attempt_count == 1 else "s"} and cannot be '
+                             'deleted without losing that history. Move it to draft to hide it from students instead.',
+                             'code': 'has_attempts', 'attempts': attempt_count}, status=409)
+        course = exam.course
         with transaction.atomic():
             exam.import_batches.all().delete()
-            exam.delete()
+            exam.delete()  # questions cascade; the course and module are untouched
+        if course:
+            # Without its quiz a module is completed manually, so stored percentages may change.
+            refresh_course_enrollments(course)
         return Response(status=204)
     if request.method == 'PUT':
         with transaction.atomic():
@@ -1488,21 +1544,127 @@ def exam_detail(request, pk):
     row['questions'] = [{'id': question.id, 'text': question.text, 'questionType': question.question_type,
                          'choices': question.choices, 'correct': question.correct, 'correctAnswers': question.correct_answers,
                          'expectedAnswer': question.expected_answer, 'acceptedAlternatives': question.accepted_answers,
-                         'normalization': question.normalization, 'score': question.score, 'points': question.points}
+                         'normalization': question.normalization, 'score': question.score, 'points': question.points,
+                         **question_media(question)}
                         for question in exam.questions.all()]
     return Response(row)
+
+
+# ───────────────────────── Quiz images ─────────────────────────
+QUIZ_IMAGE_FORMATS = {'JPEG': 'image/jpeg', 'PNG': 'image/png', 'GIF': 'image/gif', 'WEBP': 'image/webp'}
+QUIZ_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+MAX_QUIZ_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_QUIZ_IMAGE_PIXELS = 40_000_000
+
+
+def question_media(question):
+    """Image ids and explanation in the editor/snapshot shape. Text-only questions get empty values."""
+    choice_count = len(question.choices or [])
+    images = list(question.choice_images or [])
+    return {'imageId': question.image_id, 'choiceImages': (images + [None] * choice_count)[:choice_count] if images else [],
+            'explanation': question.explanation, 'explanationImageId': question.explanation_image_id}
+
+
+def validate_quiz_image(upload):
+    """Size, extension and real content (Pillow decodes the header and verifies the file), never the browser's claim."""
+    from PIL import Image, UnidentifiedImageError
+    if not upload:
+        raise ValidationError({'file': 'Choose an image to upload.'})
+    name = get_valid_filename(os.path.basename(upload.name or ''))[:200] or 'image'
+    if os.path.splitext(name)[1].lower() not in QUIZ_IMAGE_EXTENSIONS:
+        raise ValidationError({'file': 'Use a JPG, PNG, GIF or WEBP image.'})
+    if upload.size > MAX_QUIZ_IMAGE_BYTES:
+        raise ValidationError({'file': 'Images must be 5 MB or smaller.'})
+    if upload.size == 0:
+        raise ValidationError({'file': 'The image file is empty.'})
+    try:
+        upload.seek(0)
+        with Image.open(upload) as img:
+            fmt, (width, height) = img.format, img.size
+            if width * height > MAX_QUIZ_IMAGE_PIXELS:
+                raise ValidationError({'file': 'The image dimensions are too large.'})
+            img.verify()
+    except ValidationError:
+        raise
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError, Image.DecompressionBombError):
+        raise ValidationError({'file': 'This file is not a valid image.'})
+    finally:
+        upload.seek(0)
+    if fmt not in QUIZ_IMAGE_FORMATS:
+        raise ValidationError({'file': 'Use a JPG, PNG, GIF or WEBP image.'})
+    return {'original_name': name, 'content_type': QUIZ_IMAGE_FORMATS[fmt], 'size': upload.size, 'width': width, 'height': height}
+
+
+def quiz_image_json(image):
+    return {'id': image.id, 'url': f'/quiz-images/{image.id}', 'name': image.original_name, 'size': image.size,
+            'width': image.width, 'height': image.height}
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminRole])
+@parser_classes([MultiPartParser])
+def quiz_image_upload(request):
+    upload = request.FILES.get('file')
+    meta = validate_quiz_image(upload)
+    image = m.QuizImage.objects.create(file=upload, uploaded_by=request.user, **meta)
+    return Response(quiz_image_json(image), status=201)
+
+
+def quiz_image_visible(user, image_id):
+    """Admins see every quiz image. A student sees a question/choice image of a published quiz they can open (enrolled
+    course, or a course-less legacy quiz) or one in their own attempt; explanation images only after their attempt is finalized."""
+    if user.role == 'admin':
+        return True
+    if user.role != 'student':
+        return False
+    own = m.Attempt.objects.filter(student=user)
+    in_question = Q(question_snapshot__contains=[{'imageId': image_id}]) | Q(question_snapshot__contains=[{'choiceImages': [image_id]}])
+    if own.filter(in_question).exists():
+        return True
+    if own.filter(status__in=FINALIZED, question_snapshot__contains=[{'explanationImageId': image_id}]).exists():
+        return True
+    return m.Question.objects.filter(Q(image_id=image_id) | Q(choice_images__contains=[image_id]), exam__status='published').filter(
+        Q(exam__course__isnull=True) | Q(exam__course__enrollments__student=user)).exists()
+
+
+@api_view(['GET'])
+def quiz_image_file(request, pk):
+    image = m.QuizImage.objects.filter(pk=pk).first()
+    # Missing and forbidden look the same, so ids cannot be probed.
+    if not image or not quiz_image_visible(request.user, image.id):
+        return fail('Image not found.', 404)
+    try:
+        handle = image.file.open('rb')
+    except Exception as error:  # noqa: BLE001 - never expose storage paths
+        logger.error('Quiz image storage open failed (%s)', type(error).__name__)
+        return fail('Image not found.', 404)
+    response = FileResponse(handle, content_type=image.content_type)
+    response['X-Content-Type-Options'] = 'nosniff'
+    response['Cache-Control'] = 'private, max-age=300'
+    response['Content-Security-Policy'] = "default-src 'none'; sandbox"
+    response['Cross-Origin-Resource-Policy'] = 'same-origin'
+    return response
 
 
 # ───────────────────────── Attempt lifecycle, scoring, and finalisation ─────────────────────────
 def public_question(question):
     choices = question.choices or (['True', 'False'] if question.question_type == 'true_false' else [])
-    return {'id': question.id, 'text': question.text, 'questionType': question.question_type, 'choices': choices, 'points': question.points}
+    media = question_media(question)
+    return {'id': question.id, 'text': question.text, 'questionType': question.question_type, 'choices': choices, 'points': question.points,
+            'imageId': media['imageId'], 'choiceImages': media['choiceImages']}
+
+
+# Answer keys and explanations stay hidden from students until the attempt is finalized.
+PRIVATE_QUESTION_KEYS = ('correct', 'correctAnswers', 'expectedAnswer', 'acceptedAlternatives', 'normalization',
+                         'explanation', 'explanationImageId')
 
 
 def snapshot_question(question):
+    media = question_media(question)
     return {**public_question(question), 'correct': question.correct, 'correctAnswers': question.correct_answers,
             'expectedAnswer': question.expected_answer, 'acceptedAlternatives': question.accepted_answers,
-            'normalization': question.normalization}
+            'normalization': question.normalization, 'explanation': media['explanation'],
+            'explanationImageId': media['explanationImageId']}
 
 
 def assessment_payload(exam, student):
@@ -1535,7 +1697,7 @@ def attempt_response(attempt, include_correct=False):
                'answers': attempt.answers, 'answerVersion': attempt.answer_version, 'score': value_number(attempt.score),
                'autoScore': value_number(attempt.auto_score), 'total': value_number(attempt.total_points),
                'percent': value_number(attempt.percentage), 'passed': attempt.passed,
-               'questions': [{key: value for key, value in question.items() if include_correct or key not in ('correct', 'correctAnswers', 'expectedAnswer', 'acceptedAlternatives', 'normalization')}
+               'questions': [{key: value for key, value in question.items() if include_correct or key not in PRIVATE_QUESTION_KEYS}
                              for question in attempt.question_snapshot]}
     payload['questionCount'] = len(attempt.question_snapshot)
     if include_correct and attempt.status != 'in_progress':
@@ -1576,7 +1738,10 @@ def grade_snapshot(questions, answers):
         review.append({'id': question['id'], 'text': question['text'], 'questionType': question_type,
                        'choices': question.get('choices', []), 'chosen': chosen, 'correct': question.get('correct'),
                        'correctAnswers': question.get('correctAnswers', []), 'expectedAnswer': question.get('expectedAnswer', ''),
-                       'isCorrect': ok, 'points': value_number(points), 'earned': value_number(earned)})
+                       'isCorrect': ok, 'points': value_number(points), 'earned': value_number(earned),
+                       # Older snapshots have no media keys; they review as text-only questions.
+                       'imageId': question.get('imageId'), 'choiceImages': question.get('choiceImages') or [],
+                       'explanation': question.get('explanation', ''), 'explanationImageId': question.get('explanationImageId')})
     return (score, total, review)
 
 
@@ -1858,8 +2023,12 @@ def directory_row(user):
             'googleLinked': bool(user.google_sub)}
 
 
-def attempt_history_row(attempt):
+def attempt_history_row(attempt, number=None):
+    duration = (int((attempt.submitted_at - attempt.started_at).total_seconds())
+                if attempt.submitted_at and attempt.started_at and attempt.submitted_at >= attempt.started_at else None)
     return {'id': attempt.id, 'assessmentId': attempt.exam_id, 'title': attempt.exam.title, 'type': attempt.exam.assessment_type,
+            'attemptNumber': number, 'questionCount': len(attempt.question_snapshot or []), 'durationSeconds': duration,
+            'passPercent': int(pass_mark(attempt.exam)),
             'courseId': attempt.exam.course_id,
             'course': attempt.course_snapshot.get('title') or (attempt.exam.course.title if attempt.exam.course_id else ''),
             'moduleTitle': attempt.exam.module.title if attempt.exam.module_id else '', 'status': attempt.status,
@@ -1877,6 +2046,11 @@ def student_record(user):
     finalized = [attempt for attempt in attempts if attempt.status in FINALIZED]
     module_attempts = [attempt for attempt in finalized if attempt.exam.assessment_type != 'final_exam']
     finals = [attempt for attempt in finalized if attempt.exam.assessment_type == 'final_exam']
+    # "Attempt 2 of Sorting quiz": numbered per assessment in submission order.
+    numbers, seen = {}, {}
+    for attempt in sorted(finalized, key=lambda item: (item.submitted_at or item.created_at, item.id)):
+        seen[attempt.exam_id] = seen.get(attempt.exam_id, 0) + 1
+        numbers[attempt.id] = seen[attempt.exam_id]
     logins = user.login_events.filter(event_type='login').order_by('-created_at')[:25]
     return {**row, 'firstName': user.first_name, 'lastName': user.last_name, 'city': user.city, 'country': user.country,
             'enrollments': enrollments,
@@ -1885,7 +2059,7 @@ def student_record(user):
                                                if module_attempts else None),
                         'finalAttempts': len(finals), 'finalsPassed': len({a.exam_id for a in finals if a.passed}),
                         'inProgressAttempts': sum(1 for a in attempts if a.status == 'in_progress')},
-            'attempts': [attempt_history_row(attempt) for attempt in finalized],
+            'attempts': [attempt_history_row(attempt, numbers[attempt.id]) for attempt in finalized],
             'loginHistory': [{'id': event.id, 'createdAt': iso(event.created_at), 'authMethod': event.auth_method,
                               'authMethodLabel': AUTH_METHOD_LABELS.get(event.auth_method, 'Unspecified')} for event in logins],
             'lastLogin': iso(user.last_login), 'loginEvents': row['loginCount']}
@@ -1989,6 +2163,96 @@ def exam_analytics(request):
         'totalAttempts': attempts.count(), 'inProgress': attempts.filter(status='in_progress').count(), 'completed': total_completed,
         'expired': attempts.filter(status='expired').count(), 'passed': passed, 'failed': total_completed - passed,
         'passRate': float(Decimal('100') * passed / total_completed) if total_completed else 0, 'averagePercent': value_number(average)}})
+
+
+MAX_ANALYTICS_DAYS = 366
+
+
+def analytics_range(request):
+    """Inclusive local-date range from ?start=&end= (YYYY-MM-DD); the last 30 days by default, at most a year."""
+    today = timezone.localdate()
+    try:
+        end = date.fromisoformat(request.query_params['end']) if request.query_params.get('end') else today
+        start = date.fromisoformat(request.query_params['start']) if request.query_params.get('start') else end - timedelta(days=29)
+    except ValueError:
+        raise ValidationError({'message': 'Use YYYY-MM-DD dates.'})
+    if start > end:
+        raise ValidationError({'message': 'The start date must be on or before the end date.'})
+    if (end - start).days + 1 > MAX_ANALYTICS_DAYS:
+        raise ValidationError({'message': 'Choose a range of at most one year.'})
+    return start, end
+
+
+def daily_series(queryset, field, start, end, distinct_field=None):
+    """Counts per local day for every day in the range, zero-filled (TruncDate uses the active time zone)."""
+    from django.db.models.functions import TruncDate
+    counted = Count(distinct_field, distinct=True) if distinct_field else Count('id')
+    rows = (queryset.filter(**{f'{field}__date__gte': start, f'{field}__date__lte': end})
+            .annotate(day=TruncDate(field)).values('day').annotate(value=counted).order_by())
+    found = {row['day']: row['value'] for row in rows}
+    return [{'date': (start + timedelta(days=offset)).isoformat(), 'value': found.get(start + timedelta(days=offset), 0)}
+            for offset in range((end - start).days + 1)]
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminRole])
+def analytics_overview(request):
+    """Admin analytics dashboard, computed from stored PostgreSQL records only (no sample data)."""
+    finalize_expired_attempts()
+    start, end = analytics_range(request)
+    students = m.User.objects.filter(role='student')
+    logins = m.LoginEvent.objects.filter(event_type='login', user__role='student')
+    in_range = {'created_at__date__gte': start, 'created_at__date__lte': end}
+    active_ids = logins.filter(**in_range).values('user_id').distinct()
+    enrollments = m.Enrollment.objects.filter(student__role='student')
+    courses = []
+    for course in m.Course.objects.annotate(
+            enrolled=Count('enrollments', filter=Q(enrollments__student__role='student'), distinct=True),
+            completed=Count('enrollments', filter=Q(enrollments__student__role='student', enrollments__status='completed'), distinct=True),
+            average=Avg('enrollments__percent', filter=Q(enrollments__student__role='student'))).order_by('-enrolled', 'title'):
+        courses.append({'id': course.id, 'title': course.title, 'isPublished': course.is_published, 'enrolled': course.enrolled,
+                        'completed': course.completed, 'ongoing': course.enrolled - course.completed,
+                        'averageProgress': round(course.average) if course.average is not None else None,
+                        'completionRate': round(course.completed * 100 / course.enrolled) if course.enrolled else None})
+    attempts = m.Attempt.objects.filter(status__in=FINALIZED, student__role='student', submitted_at__date__gte=start,
+                                        submitted_at__date__lte=end)
+    buckets = [{'label': f'{low}–{low + 9}%' if low < 90 else '90–100%', 'min': low, 'quiz': 0, 'final': 0} for low in range(0, 100, 10)]
+    for percent, kind in attempts.values_list('percentage', 'exam__assessment_type'):
+        index = min(int(percent // 10), 9)
+        buckets[index]['final' if kind == 'final_exam' else 'quiz'] += 1
+    graded = attempts.aggregate(total=Count('id'), passed=Count('id', filter=Q(passed=True)), average=Avg('percentage'))
+    per_quiz = []
+    for row in (attempts.values('exam_id', 'exam__title', 'exam__assessment_type', 'exam__course__title')
+                .annotate(total=Count('id'), passed=Count('id', filter=Q(passed=True)), average=Avg('percentage'))
+                .order_by('-total', 'exam__title')[:12]):
+        per_quiz.append({'id': row['exam_id'], 'title': row['exam__title'], 'type': row['exam__assessment_type'],
+                         'course': row['exam__course__title'] or '', 'attempts': row['total'],
+                         'passRate': round(row['passed'] * 100 / row['total']), 'averagePercent': round(float(row['average']), 1)})
+    total_enrollments = enrollments.count()
+    completed_enrollments = enrollments.filter(status='completed').count()
+    return Response({
+        'range': {'start': start.isoformat(), 'end': end.isoformat(), 'days': (end - start).days + 1},
+        'students': {'total': students.count(), 'accountActive': students.filter(is_active=True).count(),
+                     'accountDisabled': students.filter(is_active=False).count(),
+                     'activeInRange': students.filter(pk__in=active_ids).count(),
+                     'inactiveInRange': students.exclude(pk__in=active_ids).count(),
+                     'newInRange': students.filter(date_joined__date__gte=start, date_joined__date__lte=end).count(),
+                     'neverSignedIn': students.exclude(login_events__event_type='login').count()},
+        'registrations': daily_series(students, 'date_joined', start, end),
+        'logins': daily_series(logins, 'created_at', start, end),
+        'activeStudentsByDay': daily_series(logins, 'created_at', start, end, distinct_field='user_id'),
+        'loginMethods': [{'method': row['auth_method'], 'label': AUTH_METHOD_LABELS.get(row['auth_method'], 'Unspecified'), 'value': row['value']}
+                         for row in logins.filter(**in_range).values('auth_method').annotate(value=Count('id')).order_by('-value')],
+        'courses': courses,
+        'completion': {'enrollments': total_enrollments, 'completed': completed_enrollments, 'ongoing': total_enrollments - completed_enrollments,
+                       'rate': round(completed_enrollments * 100 / total_enrollments) if total_enrollments else None,
+                       'completedInRange': enrollments.filter(completed_at__date__gte=start, completed_at__date__lte=end).count()},
+        'quizzes': {'attempts': graded['total'], 'passed': graded['passed'],
+                    'passRate': round(graded['passed'] * 100 / graded['total']) if graded['total'] else None,
+                    'averagePercent': round(float(graded['average']), 1) if graded['average'] is not None else None,
+                    'distribution': [{key: bucket[key] for key in ('label', 'min', 'quiz', 'final')} for bucket in buckets],
+                    'byQuiz': per_quiz},
+    })
 
 
 @api_view(['POST'])

@@ -39,7 +39,7 @@ export default function ForgotPassword() {
         {result ? (
           <div className="space-y-5">
             <FormAlert tone={result.delivery === 'development' ? 'info' : 'success'}>{result.message}</FormAlert>
-            <p className="text-sm text-gray-600">The link can be used once and expires after one hour.</p>
+            <p className="text-sm text-ink-soft">The link can be used once and expires after one hour.</p>
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
               <button type="button" onClick={() => setResult(null)} className={textLink}>Use a different email</button>
               <Link to={signIn} className={textLink}>Return to sign in</Link>
@@ -51,7 +51,7 @@ export default function ForgotPassword() {
               onChange={(event) => { setEmail(event.target.value); setFieldError('') }} error={fieldError} disabled={busy} autoFocus />
             <FormAlert>{error}</FormAlert>
             <SubmitButton busy={busy} busyLabel="Sending…">Send reset link</SubmitButton>
-            <p className="text-center text-sm text-gray-600">Remembered it? <Link to={signIn} className={textLink}>Return to sign in</Link></p>
+            <p className="text-center text-sm text-ink-soft">Remembered it? <Link to={signIn} className={textLink}>Return to sign in</Link></p>
           </form>
         )}
       </AuthCard>

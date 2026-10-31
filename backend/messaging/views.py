@@ -13,7 +13,7 @@ from rest_framework.response import Response
 
 from lms.utils import IsStudentRole
 
-from . import services
+from . import feed, services
 from .services import MessagingError
 
 logger = logging.getLogger(__name__)
@@ -109,7 +109,11 @@ def unread(request):
 @handled
 def attachment_file(request, pk):
     """Stream an attachment to a member of its conversation. Only images are shown inline; everything else downloads."""
-    item = services.attachment_for(request.user, pk)
+    return stream_attachment(services.attachment_for(request.user, pk), request)
+
+
+# ───────────────────────── Public student feed ─────────────────────────
+def stream_attachment(item, request):
     try:
         handle = item.file.open('rb')
     except Exception as error:  # noqa: BLE001 - don't expose storage paths in an API response
@@ -122,3 +126,31 @@ def attachment_file(request, pk):
     response['Content-Security-Policy'] = "default-src 'none'; sandbox"
     response['Cross-Origin-Resource-Policy'] = 'same-origin'
     return response
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsStudentRole])
+@parser_classes([JSONParser, FormParser, MultiPartParser])
+@handled
+def feed_posts(request):
+    if request.method == 'POST':
+        post = feed.create_post(request.user, request.data.get('body', ''), request.data.get('link', ''),
+                                request.FILES.getlist('files'))
+        return Response(post, status=201)
+    return Response(feed.list_posts(request.user, before=int_param(request, 'before'), author=int_param(request, 'author'),
+                                    limit=int_param(request, 'limit')))
+
+
+@api_view(['DELETE'])
+@permission_classes([IsStudentRole])
+@handled
+def feed_post_detail(request, pk):
+    feed.delete_post(request.user, pk)
+    return Response(status=204)
+
+
+@api_view(['GET'])
+@permission_classes([IsStudentRole])
+@handled
+def feed_attachment_file(request, pk):
+    return stream_attachment(feed.attachment_for(request.user, pk), request)
